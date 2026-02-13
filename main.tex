@@ -1,0 +1,355 @@
+\documentclass[dvipdfmx,autodetect-engine]{jsarticle}
+\usepackage{tikz}
+\usepackage{braket}
+\usepackage{amsmath,amssymb}
+\usepackage{mathtools}
+\usepackage{bm}
+\usepackage{graphicx}% Include figure files
+\usepackage{url}
+\usepackage{physics}
+%\usepackage{dcolumn}% Align table columns on decimal point
+\usepackage{comment}
+\usepackage{color}
+\usepackage{pstricks,pst-grad,color}
+\usepackage{appendix}
+\usepackage{here}
+\usepackage{ascmac}
+
+\newcommand{\p}{\partial}
+\newcommand{\da}{\dagger}
+\newcommand{\aaa}{\alpha}
+\newcommand{\bbb}{\beta}
+\newcommand{\m}[1]{\mathcal{#1}}
+\newcommand{\mr}[1]{\mathrm{#1}}
+\newcommand{\dt}{\frac{\mr{d}}{\mr{dt}}}
+\newcommand{\bv}[1]{\Bigl(#1\Bigr)}
+\newcommand{\bn}[1]{\Bigl\{#1\Bigr\}}
+\newcommand{\bg}[1]{\Bigl[#1\Bigr]}
+\newcommand{\ttr}[1]{\mathrm{Tr}\Bigl[#1\Bigr]}
+\newcommand{\sbv}[1]{\bigl(#1\bigr)}
+\newcommand{\sbn}[1]{\bigl\{#1\bigr\}}
+\newcommand{\sbg}[1]{\bigl[#1\bigr]}
+\newcommand{\ym}[1]{{\color{red} #1}}
+%\newcommand{\pdv}[2]{\frac{\p #1}{\p #2}}
+
+
+\title{熱浴に接した非対称ホッピング模型の電子状態}
+\author{道下 佳寛}
+\date{December 2025}
+
+\begin{document}
+
+\maketitle
+
+\section{雑なモチベ}
+元々別の研究で電流が流れている状態の有効模型として非対称ホッピングを扱いたかったのだが、定常状態として虚部最小の状態を取ると一部の波数のみが生き残り、虚部が負の状態を取ると正の波数が残るが結局温度をどう入れれば良いのかわからなかった。しかしそういった研究がなかったので、Hatano-Nelson模型を開放系に拡張し、それを熱浴にカップルさせた系を解析してみることにした。
+
+\section{後付けモチベ}
+
+\section{Hatano-Nelson模型の開放系への拡張}
+まず簡単のために
+\begin{itemize}
+    \item GKSL型で系が記述できていると仮定
+    \item $\rho(t) \simeq \prod_k \otimes\rho_k, \ \ \  (\rho_k = p_k\ket{k}\bra{k} + (1-p_k)\ket{0}_k\bra{0}_k)$
+\end{itemize}
+を仮定する。GKSL型で書けているので、
+\begin{align}
+    \dt \rho = \m{L}[\rho] = -i[\m{H}, \rho] - \sum_s \gamma_s \Bigl[\bigl\{L_s^\da L_s, \rho\bigr\}-2L_s\rho L_s^\da\Bigr]\label{GKSL}
+\end{align}
+と書ける。$\m{H}$はエルミート($\m{H} = \m{H}^\da$)とする。この時、非エルミート有効ハミルトニアンは
+\begin{align}
+    \m{H}_{\mr{eff}} = \m{H} - i\sum_s \gamma_s L^\da_s L_s \label{Heff}
+\end{align}
+となる。これが、Hatano-Nelson模型(簡単のためspinless fermionとする)
+\begin{align}
+    \m{H}_{\mr{HN}} &= -t\sum_i \bigl(e^{-J}c^\da_{i+1}c_i + e^{J}c^\da_{i}c_{i+1}\bigr)\label{HN}\\
+    &= -2t\sum_k \bigl(\cosh{(J)}\cos{k} - i\sinh{(J)}\sin{k}\bigr)c^\da_kc_k\label{HN_k}\\
+    &= -\bar{t}\sum_i \sbv{c^\da_{i+1}c_i + h.c.} -t_a\sum_i \sbv{c^\da_{i+1}c_i - h.c.}
+\end{align}
+になるようなセットアップを考えたい。ただし$\bar{t} = t\cosh{(J)}, \ t_a = t\sinh{(J)}$である。とりあえず$J>0$として一般性を失わない。
+
+さて安直に
+\begin{align}
+    \gamma_s &= -2t_a\sin{k}\\
+    L_s &= c_k
+\end{align}
+としたいが、CPTP性をGKSL方程式が満たす条件として、$\gamma_s \geq 0 (\forall s)$が必要であり、上のセットアップでは$\sin{k}$が正の場合に条件を満たさない。
+
+この解決策として、
+\begin{align}
+    \m{H}_{\mr{HN}}&\rightarrow \m{H}_{\mr{HN}} - i \sum_k t_a\sin{k} \\
+    &= -2\bar{t}\sum_k \cos{k}c^\da_kc_k - 2it_a\sum_{k>0}|\sin{k}|c_kc^\da_k  - 2it_a\sum_{k<0}|\sin{k}|c^\da_kc_k 
+\end{align}
+Hatano-Nelson模型(式(\ref{HN}))を虚数方向に定数ずらしたものを考えることにすれば、
+\begin{align}
+    \gamma_s &= 2t_a|\sin{k}|\\
+    L_s &= \begin{cases}
+        c^\da_k & (k>0)\\
+        c_k & (k<0)
+    \end{cases}
+\end{align}
+とすれば、正定値性を満たしつつ、Hatano-Nelson模型(を虚数方向に定数ずらしたもの)をGKSL方程式の非エルミート有効ハミルトニアンで再現できる。また、これは速度演算子の観点から見ると、正の速度を持つ粒子にgainが生じ、負の速度を持つ粒子にlossが生じるような模型になっているので、確かに流れを持つ系を表現していそうである。すなわちHatano-Nelson模型をGKSL方程式で表現したものは、
+\begin{align}
+    \dt \rho &= -i[\m{H}, \rho] - 2t_a\sum_{k>0} \sin(k)  \Bigl(\bigl\{c_k c_k^\da, \rho\bigr\}-2c_k^\da\rho c_k\Bigr) + - 2t_a\sum_{k<0} \sin(k)  \Bigl(\bigl\{c_k^\da c_k, \rho\bigr\}-2c_k\rho c_k^\da\Bigr)\label{GKSL_HN}\\
+    &\equiv -i[\m{H}_{\mr{eff}}, \rho] + \m{D}_c[\rho]\\
+    \m{H}_{\mr{eff}} &= \m{H} - i2t_a \Bigl(\sum_{k>0} \sin(k) c_kc_k^\da - \sum_{k<0} \sin(k) c_k^\da c_k \Bigr)
+\end{align}
+この場合の定常状態は簡単に導けて
+\begin{align}
+    p^{(k)}_{\mr{ss}} = \begin{cases}
+        1 & (k>0)\\
+        0 & (k<0)
+    \end{cases}
+\end{align}
+となる。あまりに自明な定常状態となるので、式(\ref{GKSL_HN})にさらに熱浴をくっつけた場合を考えたい。すなわち
+\begin{align}
+    \dt \rho = -i[\m{H}_{\mr{eff}}, \rho] - \m{D}_c[\rho] - \sum_l \gamma^T_l \Bigl[\bigl\{L_l^\da L_l, \rho\bigr\}-2L_l\rho L_l^\da\Bigr]\label{HN_with_T}
+\end{align}
+注目系の粒子数を変化させず、他の熱浴がついていなければ(Hatano-Nelsonの非エルミート項に相当する項が無ければ)、注目系は熱浴と同じ温度に落ち着くはずである。これを満たすための簡単なセットアップとして
+\begin{align}
+    \gamma^T_l &= \xi_{k\rightarrow k'} = \alpha \exp\bg{-\frac{\beta(\epsilon_{k'} - \epsilon_k)}{2}}\\
+    L_l &= c^{\da}_{k'}c_k 
+\end{align}
+これは確かにKMS条件$\xi_{k \rightarrow k'}/\xi_{k'\rightarrow k} = \exp[-\beta(\epsilon_{k'}-\epsilon_k)]$を満たす。$\alpha$は熱浴とのカップリング強度を表すパラメータと思えば良い。以降、このセットアップで式(\ref{HN_with_T})の定常状態を解析する。
+
+\section{定常状態の解析}
+\subsection{$J=0$の時の定常状態の確認}
+$J=0$の時(すなわち$\m{D}_c = 0$の時)、フェルミ分布$f_k = 1/(\exp[\beta\epsilon_k]+1)$を代入した時に式(\ref{HN_with_T})の右辺がゼロになることを確認する。
+\begin{align}
+  \dt p_k &= \sum_{k'}\bv{\xi_{k'\rightarrow k}f_{k'}(1-f_k) - (k \leftrightarrow k')}\\
+  &= \alpha\sum_{k'}\bv{e^{\frac{\beta(\epsilon_{k'}-\epsilon_k)}{2}}\frac{1}{1+e^{\beta\epsilon_{k'}}}\frac{1}{1+e^{-\beta\epsilon_{k}}} - (k \leftrightarrow k')}\\
+  &= \frac{\alpha}{4}\sum_{k'}\bv{\frac{1}{\cosh(\beta\epsilon_k)}\frac{1}{\cosh(\beta\epsilon_k')}- (k \leftrightarrow k')} = 0
+\end{align}
+よって確かに逆温度$\beta$の熱浴に接触出来ている。
+
+\subsection{$J \ll 1$の場合の定常状態の解析}
+$J \ll 1$($\sinh(J) \ll 1$)の時、定常状態は熱平衡状態からわずかにズレると仮定し、
+\begin{align}
+  p_{\mr{ss}}(k) = f_k + \delta p_k + O(\sinh^2(J))\label{pss_Jsmall}
+\end{align}
+と書き、以下では$O(\sinh^2(J))$を無視して解析を行う。
+
+式(\ref{HN_with_T})に式(\ref{pss_Jsmall})を代入し、$\sinh(J)$の１次まで考えると
+\begin{align}
+  \dt p_{\mr{ss}}(k>0) &= 2t_a \sin(k) (1-f_k) +\sum_{k'}\bv{\xi_{k'\rightarrow k} (\delta p_{k'}(1-f_k) - f_{k'}\delta p_k )- \xi_{k\rightarrow k'} (\delta p_{k}(1-f_{k'}) - f_k\delta p_{k'})}\nonumber\\
+  &= 2t_a \sin(k) (1-f_k) +\sum_{k'}\bv{\bg{\xi_{k'\rightarrow k}(1-f_k)+\xi_{k\rightarrow k'}f_k}\delta p_{k'} - \bg{\xi_{k'\rightarrow k}(f_{k'})+\xi_{k\rightarrow k'}(1- f_{k'})}\delta p_{k}}\nonumber\\
+  &= 2t_a \sin(k) (1-f_k) +\alpha\sum_{k'}\bv{\cosh^{-1}\bg{\frac{\beta\epsilon_k}{2}}\cosh\bg{\frac{\beta\epsilon_{k'}}{2}}\delta p_{k'} - \cosh^{-1}\bg{\frac{\beta\epsilon_{k'}}{2}}\cosh\bg{\frac{\beta\epsilon_{k}}{2}}\delta p_{k}}\nonumber\\
+  &= 0\label{pm_ss}\\
+  \dt p_{\mr{ss}}(k<0) &= 2t_a \sin(k) f_k +\sum_{k'}\bv{\xi_{k'\rightarrow k} (\delta p_{k'}(1-f_k) - f_{k'}\delta p_k )- \xi_{k\rightarrow k'} (\delta p_{k}(1-f_{k'}) - f_k\delta p_{k'})}\nonumber\\
+  &= 0\label{mm_ss}
+\end{align}
+これを満たす定常状態($\delta p_k$)は、導くことが出来て、
+\begin{align}
+    \delta p_k = \frac{t_a}{\alpha}\frac{\cosh^{-1}[\beta\epsilon_k/2]}{\sum_{k'}\cosh^{-1}[\beta\epsilon_k'/2]} \bv{\sin k + |\sin k|\tanh\bg{\frac{\beta\epsilon_k}{2}}}
+\end{align}
+である。確認のため、実際に代入してみよう。
+\begin{align}
+    (\ref{pm_ss}) &= t_a \cosh^{-1}[\beta\epsilon_k/2]\exp[\beta\epsilon_k/2]\sin k + t_a\sum_{k'}\cosh^{-1}[\beta\epsilon_k/2]\bv{\sin k' + |\sin k'|\tanh\bg{\frac{\beta\epsilon_{k'}}{2}}}\nonumber\\
+    & \ \ \ - t_a\bv{\sin k + |\sin k|\tanh\bg{\frac{\beta\epsilon_{k}}{2}}}\\
+    &= t_a \cosh^{-1}[\beta\epsilon_k/2]\exp[\beta\epsilon_k/2]\sin k - t_a \cosh^{-1}[\beta\epsilon_k/2]\exp[\beta\epsilon_k/2]\sin k = 0
+\end{align}
+第二項は積分の結果ゼロになり、第三項の計算で$k>0$であることを用いた。式(\ref{mm_ss})に代入する場合も同様の計算の結果ゼロとなる。
+
+ちなみにHatano-Nelson模型を再現するGKSL方程式は式(\ref{GKSL_HN})に一意に定まらない。例えば以下のような形でも$\m{H}_{eff}$はHatano-Nelson模型に落ちる。
+\begin{align}
+    \dt \rho &= -i[\m{H}, \rho] - 2t_a\sum_{k>0}\sin(k)  \bg{(1+\gamma(k))\Bigl(\bigl\{c_k c_k^\da, \rho\bigr\}-2c_k^\da\rho c_k\Bigr) + \gamma(k)\Bigl(\bigl\{c_k^\da c_k, \rho\bigr\}-2c_k\rho c_k^\da\Bigr)}\nonumber\\
+    & \ \ \ \ \ \ \ + 2t_a\sum_{k<0} \sin(k)  \bg{(1+\gamma(k))\Bigl(\bigl\{c_k^\da c_k, \rho\bigr\}-2c_k\rho c_k^\da\Bigr) + \gamma(k)\Bigl(\bigl\{c_k c_k^\da, \rho\bigr\}-2c_k^\da\rho c_k\Bigr)}.
+\end{align}
+ただし$\gamma(k)\geq0$とする。ここで$\gamma(k)$は$k>0 \ (k<0)$において、$\gamma(\pi - k) = \gamma(k) \ \ (\gamma(-\pi - k) = \gamma(k))$を満たすならば、簡単に修正を加えることができて、
+\begin{align}
+    \delta p_k = \frac{t_a}{\alpha}\frac{\cosh^{-1}[\beta\epsilon_k/2]}{\sum_{k'}\cosh^{-1}[\beta\epsilon_k'/2]} \bv{\sin k + (1+2\gamma(k))|\sin k|\tanh\bg{\frac{\beta\epsilon_k}{2}}}
+\end{align}
+とすれば良い。これは実際に修正版の式(\ref{pm_ss})
+\begin{align}
+    \dt p_{\mr{ss}}(k>0) &= 2t_a \sin(k) \bg{(1+\gamma(k))(1-f_k) - \gamma(k)f_k}\nonumber\\
+    & \ \ \ \ \ \ \ \ +\sum_{k'}\bv{\xi_{k'\rightarrow k} (\delta p_{k'}(1-f_k) - f_{k'}\delta p_k )- \xi_{k\rightarrow k'} (\delta p_{k}(1-f_{k'}) - f_k\delta p_{k'})}\nonumber\\
+  &= 2t_a \sin(k) \bg{(1+\gamma(k))(1-f_k) - \gamma(k)f_k} \nonumber\\
+    & \ \ \ \ \ \ \ \ +\alpha\sum_{k'}\bv{\cosh^{-1}\bg{\frac{\beta\epsilon_k}{2}}\cosh\bg{\frac{\beta\epsilon_{k'}}{2}}\delta p_{k'} - \cosh^{-1}\bg{\frac{\beta\epsilon_{k'}}{2}}\cosh\bg{\frac{\beta\epsilon_{k}}{2}}\delta p_{k}}\nonumber\\
+  &= 0
+\end{align}
+の解になっている。以降、後々の都合のため
+\begin{align}
+    \delta\rho_k &= \delta\rho^{(c)}_k + \delta\rho^{(th)}_k\\
+    \delta\rho^{(c)}_k &= \frac{t_a}{\alpha}\frac{\cosh^{-1}[\beta\epsilon_k/2]}{\sum_{k'}\cosh^{-1}[\beta\epsilon_k'/2]} \sin k\\
+    \delta\rho^{(th)}_k &= \frac{t_a}{\alpha}\frac{\cosh^{-1}[\beta\epsilon_k/2]}{\sum_{k'}\cosh^{-1}[\beta\epsilon_k'/2]} (1+2\gamma(k))|\sin k|\tanh\bg{\frac{\beta\epsilon_k}{2}}
+\end{align}
+と書く。
+
+さて、この定常状態の電流期待値や熱浴に放出するエネルギー期待値を計算してみる。
+電流期待値は、
+\begin{align}
+    \ev{\m{J}} &= \ttr{\m{J} \rho_{ss}} = \sum_k2t\sin k \delta\rho_k = \sum_k2t\sin k \delta\rho^{(c)}_k\\
+    &= \frac{t^2\sinh(J)}{\alpha\sum_{k'}\cosh^{-1}[\beta\epsilon_k'/2]}\sum_k \cosh^{-1}[\beta\epsilon_k/2] \sin^2 k
+\end{align}
+と書ける。$\delta\rho^{(c)}$が電流を誘起するような定常状態の成分であることがわかる。
+次に熱浴に放出するエネルギーを考える。
+\begin{align}
+    \m{Q}_{s\rightarrow b}\rho  &= \sum_{k,k'}\bv{(\epsilon_k - \epsilon_{k'})\xi_{k\rightarrow k'}\ttr{c^\da_{k'}c_k\rho c^\da_kc_{k'}}}\\
+    \ev{\m{Q}_{s\rightarrow b}} &= \ttr{\m{Q}_{s\rightarrow b}\rho_{ss}} = \ttr{\m{Q}_{s\rightarrow b}\delta\rho^{(th)}}\\
+    &= \sum_{kk'}(\epsilon_{k'} - \epsilon_{k})\xi_{k'\rightarrow k} (\delta p_{k'}(1-f_k) - f_{k'}\delta p_k )\\
+    &= 2t_a\sum_{k}(1+2\gamma(k))\epsilon_{k}|\sin k|\tanh\bg{\frac{\beta\epsilon_{k}}{2}}
+\end{align}
+よって$\delta\rho^{(th)}$は熱を熱浴に放出する為の定常状態の成分であることがわかる。さらに、
+\begin{align}
+    \bv{-\pdv{f}{\beta}} =  4\epsilon \cosh^{-2}\bv{\frac{\beta\epsilon}{2}}
+\end{align}
+であることを用いると、$\delta\rho^{(th)}$は、
+\begin{align}
+    \delta\rho^{(th)}_k &= \frac{t_a}{\alpha}\frac{\cosh^{-1}[\beta\epsilon_k/2]}{\sum_{k'}\cosh^{-1}[\beta\epsilon_k'/2]} (1+2\gamma(k))|\sin k|\tanh\bg{\frac{\beta\epsilon_k}{2}}\nonumber\\
+    &= \frac{t_a}{\alpha}(1+2\gamma(k))|\sin k|\frac{\beta}{8}\frac{\sinh(\beta\epsilon_k/2)}{\beta\epsilon_k/2} \bv{-\pdv{f}{\beta}}\\
+    &\simeq \bv{-\pdv{f}{\beta}}\frac{\beta t_a}{8\alpha}(1+2\gamma(k_F)) \bv{= \bv{-\pdv{f}{\beta}}\delta\beta_c}\label{app_eff_T}
+\end{align}
+と書ける。式(\ref{app_eff_T})は低温領域において、$\p f/\p\omega$はほとんど$\beta\epsilon_k \ll1$でしか値を持たないことを用いた。よって定常状態におけるこの成分は(フェルミ面における)有効温度の向上として解釈でき、その変化分は$\delta\beta_c = -\beta t_a(1+2\gamma(k_F))/8\alpha$である。($\delta T_c = T*t_a(1+2\gamma(k_F))/8\alpha$)
+
+$J$が小さな領域において$\sinh(J)\simeq J$なのでこの有効温度の向上$\delta T_c\propto T*J$である。
+
+\section{模型の正当性の確認}
+上記の解析により、Hatano--Nelson模型を開放系に拡張した場合に、電流を印加する事で系の有効温度が電流に比例して向上するという結果が得られた。しかし、Hatano--Nelson模型が現実的な電流が流れている系を表現しているかは別の問題である。関連を示す論文として、開放端境界条件の孤立系において、ポテンシャル勾配のかかった系の熱平衡状態と熱浴に接触したHatano--Nelson模型の熱平衡状態が、ポテンシャル勾配が小さい極限(ポテンシャル勾配の一次まで)で等価である事は示されている\cite{SEatT}。しかしこのセットアップにおいては定常状態では電流は流れておらず、ただの粒子数期待値の勾配のある熱平衡状態である。電流が流れるようなセットアップにおいて、この等価性が成り立つのかは示されておらず、新たに確認する必要がある。
+\subsection{ポテンシャル差を持つ熱浴につながった開放端の開放系}
+ひとまず開放端境界条件において、両端にポテンシャルが異なる２つの熱浴を接した系を考える。簡単のため系は2-site系とする。全系のHamiltonianは、
+\begin{align}
+    \m{H}_{\mr{tot}} &= \m{H}_{S} + \m{H}_{B_1} + \m{H}_{B_2} + \m{H}_{V_1} + \m{H}_{V_2}\\
+    \m{H}_S &= -t(c^\da_1c_2 + c^\da_2c_1) - \frac{\phi}{2}\qty( c^\da_1c_1 - c^\da_2c_2) = \sum_{\pm}\pm\sqrt{t^2+\qty(\frac{\phi}{2})^2}c^\da_{\pm}c_\pm\\
+    \m{H}_{B_i} &= \epsilon_{B_i} b^\da_ib_i\\
+    \m{H}_{V_i} &= V \qty(c^\da_i b_i + b^\da_ic_i)\\
+    c_{+} &= \frac{r-\phi/2}{\sqrt{(r-\phi/2)^2+t^2}}c_1 - \frac{t}{\sqrt{(r-\phi/2)^2+t^2}}c_2, \ \ \ \  c_{-} = -\frac{t}{\sqrt{(r-\phi/2)^2+t^2}}c_1 - \frac{r-\phi/2}{\sqrt{(r-\phi/2)^2+t^2}}c_2
+\end{align}
+$r = \sqrt{t^2+\qty(\frac{\phi}{2})^2}$. 以降$\cos\theta = \frac{r-\phi/2}{\sqrt{(r-\phi/2)^2+t^2}}, \sin\theta=\frac{t}{\sqrt{(r-\phi/2)^2+t^2}}$とし、省略して$c, s$と書く。 簡単のため、ここでは$\epsilon_{B_2} = -\epsilon_{B_1}$を考える事にする。ここで系の定常状態付近での輸送・応答に注目することにし、かつ熱浴の相関時間が有限であるとすれば、Markov近似が正当化される。得られる量子マスター方程式(Redfield方程式)は、
+\begin{align}
+    \m{D}_1[\rho^I(t)] &= -\int_0^\infty d(t-s) \ttr{\m{H}_{V_1}^I(t), [\m{H}_{V_1}^I(s)], \rho^I_S(t)}\\
+    &= -i c\Sigma^{(1)}_+\qty(c[c_+^\da, c_+\rho_S^I(t)] -s[c_-^\da, c_+\rho_S^I(t)]e^{-i\Delta t}) -i c\Sigma^{(1)\da}_+\qty(c[c_+, \rho_S^I(t)c_+^\da] -s [c_-, \rho_S^I(t)c_+^\da]e^{i\Delta t})\nonumber\\
+    & \ \ \ \ \ -i s\Sigma^{(1)}_-\qty(s[c_-^\da, c_-\rho_S^I(t)] -c [c_+^\da, c_-\rho_S^I(t)]e^{i\Delta t})  -i s\Sigma^{(1)\da}_-\qty(s[c_-, \rho_S^I(t)c_-^\da] -c [c_+, \rho_S^I(t)c_-^\da]e^{-i\Delta t})\nonumber\\
+    & \ \ \ \ \ +i c\tilde{\Sigma}^{(1)\da}_+\qty(c[c_+, c_+^\da\rho_S^I(t)] -s [c_-, c_+^\da\rho_S^I(t)]e^{i\Delta t}) +i c\tilde{\Sigma}^{(1)}_+\qty(c[c_+^\da, \rho_S^I(t)c_+] -s [c_-^\da, \rho_S^I(t)c_+]e^{-i\Delta t})\nonumber\\
+    & \ \ \ \ \ +i s\tilde{\Sigma}^{(1)^\da}_-\qty(s[c_-, c_-^\da\rho_S^I(t)] -c [c_+, c_-^\da\rho_S^I(t)]e^{-i\Delta t}) +i s\tilde{\Sigma}^{(1)}_-\qty([c_-^\da, \rho_S^I(t)c_-] -c [c_+^\da, \rho_S^I(t)c_-]e^{i\Delta t})
+\end{align}
+相互作用描像からシュレディンガー描像に戻すと各第二項の位相は消える。よって最終的に、
+\begin{align}
+    \m{D}_1[\rho_S(t)] &= -i[\m{H}^{(1)}_{\mr{eff}}, \rho_S(t)] + \tilde{\m{D}}_1[\rho_S(t)]\\
+    \m{H}^{(1)}_{\mr{eff}} &= \mqty(c^\da_+ & c^\da_-) \mqty(c^2 \Sigma^{(1)}_+ & -sc \Sigma^{(1)}_- \\ -sc \Sigma^{(1)}_+ & s^2 \Sigma^{(1)}_-)\mqty(c_+ \\ c_-) - \mqty(c_+ & c_-) \mqty(c^2 \tilde{\Sigma}^{(1)\da}_+ & -sc \tilde{\Sigma}^{(1)\da}_- \\ -sc \tilde{\Sigma}^{(1)\da}_+ & s^2 \tilde{\Sigma}^{(1)\da}_-)\mqty(c^\da_+ \\ c^\da_-)\\
+    &= \mqty(c^\da_1 & c^\da_2)\mqty(c & -s \\ -s & -c) \mqty(c^2 \Sigma^{(1)}_+ & -sc \Sigma^{(1)}_- \\ -sc \Sigma^{(1)}_+ & s^2 \Sigma^{(1)}_-)\mqty(c & -s \\ -s & -c)\mqty(c_1 \\ c_2)\nonumber\\
+    & \ \ - \mqty(c_1 & c_2)\mqty(c & -s \\ -s & -c) \mqty(c^2 \tilde{\Sigma}^{(1)\da}_+ & -sc \tilde{\Sigma}^{(1)\da}_- \\ -sc \tilde{\Sigma}^{(1)\da}_+ & s^2 \tilde{\Sigma}^{(1)\da}_-)\mqty(c & -s \\ -s & -c)\mqty(c^\da_+ \\ c^\da_-)\\
+    &= \mqty(c^\da_1 & c^\da_2)\mqty(c \Sigma^{(1)}_+ & -s\Sigma^{(1)}_- \\ 0 & 0 )\mqty(c & -s \\ -s & -c)\mqty(c_1 \\ c_2)\nonumber\\
+    & \ \ - \mqty(c_1 & c_2)\mqty(c \tilde{\Sigma}^{(1)\da}_+ & -s \tilde{\Sigma}^{(1)\da}_- \\ 0 & 0)\mqty(c & -s \\ -s & -c)\mqty(c^\da_+ \\ c^\da_-)\\
+\end{align}
+\begin{align}
+    &= \mqty(c^\da_1 & c^\da_2)\mqty(c^2 \Sigma^{(1)}_+ + s^2 \Sigma^{(1)}_- & -sc(\Sigma^{(1)}_+-\Sigma^{(1)}_- )\\ 0 & 0 )\mqty(c_1 \\ c_2)\nonumber\\
+    & \ \ \ \ \  - \mqty(c_1 & c_2)\mqty(c^2 \tilde{\Sigma}^{(1)\da}_++s^2 \tilde{\Sigma}^{(1)\da}_- & -sc( \tilde{\Sigma}^{(1)\da}_+- \tilde{\Sigma}^{(1)\da}_-) \\ 0 & 0)\mqty(c^\da_+ \\ c^\da_-)\\
+    \tilde{\m{D}}[\rho_S(t)] &= i\mqty(c_+ & c_-) \mqty(c^2(\Sigma^{(1)}_+-\Sigma^{(1)\da}_+) & -sc(\Sigma^{(1)}_+-\Sigma^{(1)\da}_-) \\ -sc(\Sigma^{(1)}_--\Sigma^{(1)\da}_+) & s^2(\Sigma^{(1)}_--\Sigma^{(1)\da}_-))\mqty(\rho_S(t)c^\da_+ \\ \rho_S(t)c^\da_-)\nonumber\\
+     & \ \ \ \ \ - i\mqty(c^\da_+ & c^\da_-) \mqty(c^2(\tilde{\Sigma}^{(1)}_+-\tilde{\Sigma}^{(1)\da}_+) & -sc(\tilde{\Sigma}^{(1)}_+-\tilde{\Sigma}^{(1)\da}_-) \\ -sc(\tilde{\Sigma}^{(1)}_--\tilde{\Sigma}^{(1)\da}_+) & s^2(\tilde{\Sigma}^{(1)}_--\tilde{\Sigma}^{(1)\da}_-))\mqty(\rho_S(t)c_+ \\ \rho_S(t)c_-)\\
+     & = i\mqty(c_1 & c_2) \mqty(c^2(\Sigma^{(1)}_+-\Sigma^{(1)\da}_+) +s^2(\Sigma^{(1)}_--\Sigma^{(1)\da}_-) & sc(\Sigma^{(1)\da}_+-\Sigma^{(1)\da}_-) \\ -sc(\Sigma^{(1)}_+-\Sigma^{(1)}_-) & 0)\mqty(\rho_S(t)c^\da_1 \\ \rho_S(t)c^\da_2)\nonumber\\
+     & \ \ \ \ \ - i\mqty(c^\da_1 & c^\da_2) \mqty(c^2(\tilde{\Sigma}^{(1)\da}_+-\tilde{\Sigma}^{(1)}_+) +s^2(\tilde{\Sigma}^{(1)\da}_--\tilde{\Sigma}^{(1)}_-) & sc(\tilde{\Sigma}^{(1)}_+-\tilde{\Sigma}^{(1)}_-) \\ -sc(\tilde{\Sigma}^{(1)\da}_+-\tilde{\Sigma}^{(1)\da}_-) & 0)\mqty(\rho_S(t)c_1 \\ \rho_S(t)c_2)
+\end{align}
+ここで$\Sigma^{(1)}_\pm = -i\int_0^\infty dt\ttr{b^I_1(t)b^\da_1\rho_B}e^{\pm irt}$, $\tilde{\Sigma}^{(1)}_\pm = -i\int_0^\infty dt\ttr{b^\da_1b^I_1(t)\rho_B}e^{\pm irt}$とした。さて同様にして、熱浴２に由来する散逸は、
+\begin{align}
+    \m{D}_2[\rho_S(t)] &= -i[\m{H}^{(2)}_{\mr{eff}}, \rho_S(t)] + \tilde{\m{D}}_2[\rho_S(t)]\\
+    \m{H}^{(2)}_{\mr{eff}} &= \mqty(c^\da_+ & c^\da_-) \mqty(s^2 \Sigma^{(2)}_+ & sc \Sigma^{(2)}_- \\ sc \Sigma^{(2)}_+ & c^2 \Sigma^{(2)}_-)\mqty(c_+ \\ c_-) - \mqty(c_+ & c_-) \mqty(s^2 \tilde{\Sigma}^{(2)\da}_+ & sc \tilde{\Sigma}^{(2)\da}_- \\ sc \tilde{\Sigma}^{(2)\da}_+ & c^2 \tilde{\Sigma}^{(2)\da}_-)\mqty(c^\da_+ \\ c^\da_-)\nonumber\\
+    &= \mqty(c^\da_1 & c^\da_2)\mqty(0 & 0\\ -sc(\Sigma^{(2)}_+-\Sigma^{(2)}_- ) & s^2 \Sigma^{(2)}_+ + c^2 \Sigma^{(2)}_- )\mqty(c_1 \\ c_2)\nonumber\\
+    & \ \ \ \ \  - \mqty(c_1 & c_2)\mqty(0 & 0 \\ -sc( \tilde{\Sigma}^{(2)\da}_+- \tilde{\Sigma}^{(2)\da}_-) & s^2 \tilde{\Sigma}^{(2)\da}_++c^2 \tilde{\Sigma}^{(2)\da}_-)\mqty(c^\da_+ \\ c^\da_-)\\
+    \tilde{\m{D}}_2[\rho_S(t)] &= i\mqty(c_+ & c_-) \mqty(s^2(\Sigma^{(2)}_+-\Sigma^{(2)\da}_+) & sc(\Sigma^{(2)}_+-\Sigma^{(2)\da}_-) \\ sc(\Sigma^{(2)}_--\Sigma^{(2)\da}_+) & c^2(\Sigma^{(2)}_--\Sigma^{(2)\da}_-))\mqty(\rho_S(t)c^\da_+ \\ \rho_S(t)c^\da_-)\nonumber\\
+     & \ \ \ \ \ - i\mqty(c^\da_+ & c^\da_-) \mqty(s^2(\tilde{\Sigma}^{(2)}_+-\tilde{\Sigma}^{(2)\da}_+) & sc(\tilde{\Sigma}^{(2)}_+-\tilde{\Sigma}^{(2)\da}_-) \\ sc(\tilde{\Sigma}^{(2)}_--\tilde{\Sigma}^{(2)\da}_+) & c^2(\tilde{\Sigma}^{(2)}_--\tilde{\Sigma}^{(2)\da}_-))\mqty(\rho_S(t)c_+ \\ \rho_S(t)c_-)\\
+     & = i\mqty(c_1 & c_2) \mqty(0 & -sc(\Sigma^{(2)}_+-\Sigma^{(2)}_-) \\ sc(\Sigma^{(2)\da}_+-\Sigma^{(2)\da}_-) & s^2(\Sigma^{(2)}_+-\Sigma^{(2)\da}_+) +c^2(\Sigma^{(2)}_--\Sigma^{(2)\da}_-))\mqty(\rho_S(t)c^\da_1 \\ \rho_S(t)c^\da_2)\nonumber\\
+     & \ \ \ \ \ - i\mqty(c^\da_1 & c^\da_2) \mqty(0 & -sc(\tilde{\Sigma}^{(1)\da}_+-\tilde{\Sigma}^{(2)\da}_-) \\ sc(\tilde{\Sigma}^{(2)}_+-\tilde{\Sigma}^{(2)}_-) & s^2(\tilde{\Sigma}^{(2)\da}_+-\tilde{\Sigma}^{(2)}_+) +c^2(\tilde{\Sigma}^{(2)\da}_--\tilde{\Sigma}^{(2)}_-))\mqty(\rho_S(t)c_1 \\ \rho_S(t)c_2)
+\end{align}
+
+定常状態確認。
+
+\subsection{Nathan--Rudner型のGKSL方程式}
+次に時間粗視化による(Nathan--Rudner型の)GKSL方程式を導出し、これがcurrentのある定常状態を記述できるのかについて確認してみたい。
+Redfield方程式の標準的な形式で量子マスター方程式を書き直す所から始めることにする。
+
+まず、システムと熱浴の相互作用をエルミートな演算子の積で書き直す。すなわち
+\begin{align}
+    c^\da_1b_1 - c_1b^\da_1 &= i(c_\alpha b_\alpha - c_\beta b_\beta)\\
+    c_\alpha &= i(c_1-c_1^\da)/\sqrt{2}, \ \ \ \ \ \ c_\beta = (c^\da_1 + c_1)/\sqrt{2}\\
+    b_\alpha &= (b^\da_1 + b_1)/\sqrt{2}, \ \ \ \ \ \ b_\beta = i(b_1-b_1^\da)/\sqrt{2}
+\end{align}
+これらエルミートな演算子の熱浴の相関関数は
+\begin{align}
+    \Phi_{\alpha\beta}(t) &= \ttr{b^I_{\alpha}(t)b_{\beta}\rho_B}\\
+    &= -\frac{i}{2}\ttr{b_1^I(t)b^\da_1\rho_B} + \frac{i}{2}\ttr{b_1^{I\da}(t)b_1\rho_B} = \frac{1}{2}\qty(\Sigma(t) + \tilde{\Sigma}^\da(t))\\
+    \Phi_{\beta\alpha}(t) &= \ttr{b^I_{\beta}(t)b_{\alpha}\rho_B} = -\Phi_{\alpha\beta}(t)\\
+    \Phi_{\alpha\alpha}(t) &= \ttr{b^I_{\alpha}(t)b_{\alpha}\rho_B}\\
+    &= \frac{1}{2}\ttr{b_1^I(t)b^\da_1\rho_B} + \frac{1}{2}\ttr{b_1^{I\da}(t)b_1\rho_B}\\
+    & =\frac{i}{2}\qty(\Sigma(t) -\tilde{\Sigma}^\da(t)) = \Phi_{\beta\beta}(t)\\
+    \Phi_{pq}^*(t) &= \ttr{\rho_Bb_qb_p^I(t)} = \ttr{b_q^I(-t)b_p\rho_B} = \Phi_{qp}(-t)\\
+    \Rightarrow& \Phi_{\alpha\alpha}(\omega) = \int_0^\infty \mr{d}t e^{i\omega t} \Phi_{\alpha\alpha}(t) = \frac{i}{2}\bv{\Sigma(\omega) - \tilde{\Sigma}^\da(-\omega)} = \Phi_{\beta\beta}(\omega) \\
+    & \Phi_{\alpha\beta}(\omega) = \frac{1}{2}\bv{\Sigma(\omega) + \tilde{\Sigma}^\da(-\omega)} = -\Phi_{\beta\alpha}(\omega)
+\end{align}
+ちなみに$\Phi_{\beta\alpha}(-t) = \Phi_{\alpha\beta}^*(t)$を満たす。今後の便利のために以下の表式を用いることにする。
+\begin{align}
+    \gamma_{\alpha\beta}(\omega) &= \int_{-\infty}^\infty \mr{d}t e^{i\omega t} \Phi_{\alpha\beta}(t) = \int_{0}^\infty \mr{d}t e^{i\omega t} \Phi_{\alpha\beta}(t) + \int_{0}^\infty \mr{d}t e^{-i\omega t} \Phi_{\alpha\beta}(-t)\\
+    &= \Phi_{\alpha\beta}(\omega) + \Phi_{\beta\alpha}^*(\omega) = i\mr{Im}\qty[\Sigma(\omega)+ \tilde{\Sigma}^{\da}(-\omega)] = -\gamma_{\beta\alpha}\\
+    \eta_{\alpha\beta}(\omega) &= -\frac{i}{2}\qty(\int_{0}^\infty-\int_{-\infty}^0)\mr{d}t e^{i\omega t} \Phi_{\alpha\beta}(t)\\
+    &= -\frac{i}{2}\qty(\Phi_{\alpha\beta}(\omega) - \Phi_{\beta\alpha}^*(\omega)) = -\frac{i}{2} \mr{Re}\qty[\Sigma(\omega)+ \tilde{\Sigma}^{\da}(-\omega)] = -\eta_{\beta\alpha}\\
+    \gamma_{\alpha\alpha}(\omega) &=  \Phi_{\alpha\alpha}(\omega) + \Phi_{\alpha\alpha}^*(\omega) = -\mr{Im}\qty[\Sigma(\omega) - \tilde{\Sigma}^\da(-\omega)] = \gamma_{\beta\beta}(\omega)\\
+    \eta_{\alpha\alpha}(\omega)&= -\frac{i}{2}\qty(\Phi_{\alpha\alpha}(\omega) - \Phi_{\alpha\alpha}^*(\omega)) = \frac{1}{2}\mr{Re}\qty[\Sigma(\omega) - \tilde{\Sigma}(-\omega)] = \eta_{\beta\beta}(\omega)
+\end{align}
+を用いれば
+\begin{align}
+    \Phi_{pq}(\omega) = \frac{1}{2}\gamma_{pq}(\omega) + i \eta_{pq}(\omega)\\
+    \gamma_{pq} = \gamma^*_{qp}, \ \ \ \ \ \eta_{pq} = \eta_{qp}^*
+\end{align}
+となりエルミートな成分に分解できている。ここで今後使うために、
+\begin{align}
+    \gamma(\omega) &= \gamma_{\alpha\alpha}(\omega) = \gamma_{\beta\beta}(\omega) = \mr{Im}\qty[\Sigma(\omega)+\tilde{\Sigma}(-\omega)]\\
+    \gamma'(\omega) &= -i\gamma_{\alpha\beta}(\omega) = \mr{Im}\qty[\Sigma(\omega)-\tilde{\Sigma}(-\omega)]
+\end{align}
+\begin{align}
+    \hat{\gamma}(\omega) &= \mqty(\gamma(\omega) & i\gamma'(\omega)\\ -i\gamma'(\omega) & \gamma(\omega))\\
+    \hat{\gamma}^{\frac{1}{2}}(\omega) &= \frac{1}{\sqrt{2}}\mqty((\gamma_m(\omega)+\gamma_s(\omega)) & i(\gamma_m(\omega)-\gamma_s(\omega)) \\ -i(\gamma_m(\omega)-\gamma_s(\omega)) & (\gamma_m(\omega)+\gamma_s(\omega)))\\
+    \gamma_m(\omega) &= \sqrt{\gamma(\omega) + \gamma'(\omega)}, \ \ \ \gamma_s(\omega) = \sqrt{\gamma(\omega) - \gamma'(\omega)}
+\end{align}
+さらに
+\begin{align}
+    c_p[\omega] &\equiv \sum_{\epsilon_m-\epsilon_n = \hbar\omega}\ket{n}\bra{m}\braket{n|c_p|m}\\
+    c_\alpha[r] &= \frac{i}{\sqrt{2}}(sc^\da_- + c c_+), \ \ \ \ \ c_\alpha[-r] = c_\alpha[r]^\da\\
+    c_\beta[r] &= \frac{1}{\sqrt{2}}(-sc^\da_- + c c_+), \ \ \ \ \ c_\beta[-r] = c_\beta[r]^\da\\
+    c^I_p[r](t) &= c_p[r] e^{-irt}
+\end{align}
+とおく。さて準備は出来た。
+まずこの表式におけるRedfield方程式は
+\begin{align}
+    \frac{d}{dt}\rho^I_S(t) &= -\int_0^\infty \mr{d}(t-s) [\m{H}^I_V(t),[\m{H}^I_V(s), \rho^I(t)]]\\
+    &= -\int_0^\infty \mr{d}(t-s)\sum_{pq = \alpha\beta}(1-2\delta_{pq})\Biggl[\Phi_{pq}(t-s)[c^I_{p}(t), c^I_q(s)\rho^I_S(t)] - \Phi^*_{pq}(t-s)[c^I_{p}(t), \rho^I_S(t)c^I_q(s)]\Biggr]\\
+    &= -\int_0^\infty \mr{d}\tau\sum_{pq = \alpha\beta}(1-2\delta_{pq})\sum_{\omega, \omega'}\Biggl[\Phi_{pq}(\tau)e^{i\omega'\tau}e^{-i(\omega-\omega')t}[c^\da_{p}[\omega], c_q[\omega']\rho^I_S(t)]\nonumber\\
+    & \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ - \Phi^*_{qp}(\tau)e^{-i\omega\tau}e^{i(\omega-\omega')t}[c_{q}[\omega'], \rho^I_S(t)c^\da_p[\omega]]\Biggr]
+\end{align}
+\begin{align}
+    \Rightarrow \frac{d}{dt}\rho_S(t) &= -i[\m{H}, \rho_S(t)] + \sum_{pq = \alpha\beta}(1-2\delta_{pq})\sum_{\omega, \omega'}\Biggl[\Phi_{pq}(\omega')[c^\da_{p}[\omega], c_q[\omega']\rho_S(t)] - \Phi^*_{qp}(\omega)[c_{q}[\omega'], \rho_S(t)c^\da_p[\omega]]\Biggr]\\
+    &= -i[\m{H}+\m{H}_{\mr{LS}}, \rho_S(t)] + \sum_{pq = \alpha\beta}(1-2\delta_{pq})\sum_{\omega, \omega'}\Gamma_{pq}(\omega, \omega')\Biggl[c_q[\omega']\rho_S(t)[c^\da_{p}[\omega]] - \frac{1}{2}\bigl\{c^\da_p[\omega]c_{q}[\omega'], \rho_S(t) \bigr\}\Biggr]\label{RF_normal}\\
+    \Gamma_{pq}(\omega, \omega') &= \bv{\frac{1}{2}\gamma_{pq}(\omega') +i\eta_{pq}(\omega') + \frac{1}{2}\gamma_{qp}^*(\omega) -i\eta^*_{qp}(\omega)}\\
+    &= \bv{\frac{1}{2}\gamma_{pq}(\omega') +i\eta_{pq}(\omega') + \frac{1}{2}\gamma_{pq}(\omega) -i\eta_{pq}(\omega)} = \frac{1}{2}\bv{\gamma_{pq}(\omega) + \gamma_{pq}(\omega')} -i\bv{\eta_{pq}(\omega)-\eta_{pq}(\omega')}\\
+    \m{H}_{LS}& =  -i\sum_{pq = \alpha\beta}(1-2\delta_{pq})\sum_{\omega, \omega'}\bv{\frac{1}{2}\gamma_{pq}(\omega') +i\eta_{pq}(\omega') - \frac{1}{2}\gamma_{qp}^*(\omega) +i\eta^*_{qp}(\omega)}\\
+    & =  \frac{1}{2}\sum_{pq = \alpha\beta}(1-2\delta_{pq})\sum_{\omega, \omega'}\bg{\bv{\eta_{pq}(\omega) + \eta_{pq}(\omega')} +\frac{i}{2}\bv{\gamma_{pq}(\omega)-\gamma_{pq}(\omega')}}
+\end{align}
+Nathan--Rudner型のGKSL方程式は、このRedfield方程式に対し、
+\begin{align}
+    \gamma_{pq}(\omega) = \gamma_{pq}(\omega') =  \qty(\hat{\gamma}^{\frac{1}{2}}(\omega)*\hat{\gamma}^{\frac{1}{2}}(\omega'))_{pq}
+\end{align}
+という近似を行い、$l_{\alpha/\beta} = \mp i$とすれば$(1-2\delta_{pq}) = l_pl_q$なので、
+\begin{align}
+    \Gamma_{pq}(\omega, \omega') &= \frac{1}{2}\bv{\gamma_{pq}(\omega) + \gamma_{pq}(\omega')} -i\bv{\eta_{pq}(\omega)-\eta_{pq}(\omega')}\nonumber\\
+    &\simeq \gamma^{\frac{1}{2}}_{pj}(\omega)*\gamma^{\frac{1}{2}}_{jq}(\omega')
+\end{align}
+より、Redfield方程式(式(\ref{RF_normal}))の第二項(の一部)は、
+\begin{align}
+    &\sum_{p,q,j = \alpha\beta}l_pl_q\sum_{\omega, \omega'}\gamma^{\frac{1}{2}}_{pj}(\omega)*\gamma^{\frac{1}{2}}_{jq}(\omega')\Biggl[c_q[\omega']\rho^I_S(t)[c^\da_{p}[\omega]]\Biggr]\nonumber\\
+    &\simeq \sum_{j}\bv{\sum_q \sum_{\omega'}\gamma^{\frac{1}{2}}_{jq}(\omega')l_qc_q[\omega']}\rho_S(t)\bv{\sum_p \sum_{\omega}\gamma^{\frac{1}{2}}_{jp}(\omega)l_pc_p[\omega]}^\da
+\end{align}
+と書ける。新たな演算子
+\begin{align}
+    L_{p} &= \sum_{\pm, q} \gamma^{\frac{1}{2}}_{pq}(\pm r)l_qc_q[\pm r]\\
+    L_{\alpha} &= \frac{1}{2}\qty[\gamma^{(+)}_m(sc^\da_- + c c_+ + sc^\da_- - cc_-)+\gamma^{(+)}_s(sc_- + c c^\da_+- sc_- + cc_-^\da)]\nonumber\\
+   & \ \ \ \ + \frac{1}{2}\qty[\gamma^{(-)}_m(-sc^\da_- - c c_+ + sc^\da_- - cc_-)+\gamma^{(-)}_s(-sc_- - c c^\da_+- sc_- + c_-^\da)]\nonumber\\
+   &= \qty(\gamma^{(+)}_msc^\da_- + \gamma^{(+)}_scc_+ - \gamma^{(-)}_mcc^\da_+- \gamma^{(-)}_ssc_-)\\
+   &= \qty(-\bar{\gamma}_m + \Delta_m\cos2\theta)c^\da_1 - \Delta_m\sin2\theta c^\da_2 + \qty(\bar{\gamma}_s + \Delta_s\cos2\theta c)c_1- \Delta_s\sin2\theta c_2\\
+    L_{\beta} &= -i\qty(\gamma^{(+)}_msc^\da_- - \gamma^{(+)}_scc_+ - \gamma^{(-)}_mcc^\da_+ + \gamma^{(-)}_ssc_-)\\
+   \bar{\gamma}_p &= \frac{\gamma^{(+)}_p + \gamma^{(-)}_p}{2}, \ \ \ \ \ \Delta_p = \frac{\gamma^{(+)}_p - \gamma^{(-)}_p}{2}
+\end{align}
+を用いて、Nathan--Rudnerの近似の下でRedfield方程式は以下のようなGKSL型の方程式で記述することが出来る。
+\begin{align}
+    \frac{d}{dt}\rho_S(t) &= -i[\m{H}_S+\m{H}_{LS}, \rho_S(t)] + \sum_{j = \alpha\beta}\Biggl[L_j\rho_S(t)L^\da_j - \frac{1}{2}\bigl\{L_j^\da L_j, \rho_S(t) \bigr\}\Biggr]
+\end{align}
+\bibliographystyle{plain}
+\bibliography{main}
+\end{document}
