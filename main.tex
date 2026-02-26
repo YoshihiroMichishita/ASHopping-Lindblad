@@ -315,8 +315,8 @@ Redfield方程式の標準的な形式で量子マスター方程式を書き直
     & \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ - \Phi^*_{qp}(\tau)e^{-i\omega\tau}e^{i(\omega-\omega')t}[c_{q}[\omega'], \rho^I_S(t)c^\da_p[\omega]]\Biggr]
 \end{align}
 \begin{align}
-    \Rightarrow \frac{d}{dt}\rho_S(t) &= -i[\m{H}, \rho_S(t)] + \sum_{pq = \alpha\beta}(1-2\delta_{pq})\sum_{\omega, \omega'}\Biggl[\Phi_{pq}(\omega')[c^\da_{p}[\omega], c_q[\omega']\rho_S(t)] - \Phi^*_{qp}(\omega)[c_{q}[\omega'], \rho_S(t)c^\da_p[\omega]]\Biggr]\\
-    &= -i[\m{H}+\m{H}_{\mr{LS}}, \rho_S(t)] + \sum_{pq = \alpha\beta}(1-2\delta_{pq})\sum_{\omega, \omega'}\Gamma_{pq}(\omega, \omega')\Biggl[c_q[\omega']\rho_S(t)[c^\da_{p}[\omega]] - \frac{1}{2}\bigl\{c^\da_p[\omega]c_{q}[\omega'], \rho_S(t) \bigr\}\Biggr]\label{RF_normal}\\
+    \Rightarrow \frac{d}{dt}\rho_S(t) &= -i[\m{H}, \rho_S(t)] - \sum_{pq = \alpha\beta}(1-2\delta_{pq})\sum_{\omega, \omega'}\Biggl[\Phi_{pq}(\omega')[c^\da_{p}[\omega], c_q[\omega']\rho_S(t)] - \Phi^*_{qp}(\omega)[c_{q}[\omega'], \rho_S(t)c^\da_p[\omega]]\Biggr]\\
+    &= -i[\m{H}+\m{H}_{\mr{LS}}, \rho_S(t)] - \sum_{pq = \alpha\beta}(1-2\delta_{pq})\sum_{\omega, \omega'}\Gamma_{pq}(\omega, \omega')\Biggl[c_q[\omega']\rho_S(t)[c^\da_{p}[\omega]] - \frac{1}{2}\bigl\{c^\da_p[\omega]c_{q}[\omega'], \rho_S(t) \bigr\}\Biggr]\label{RF_normal}\\
     \Gamma_{pq}(\omega, \omega') &= \bv{\frac{1}{2}\gamma_{pq}(\omega') +i\eta_{pq}(\omega') + \frac{1}{2}\gamma_{qp}^*(\omega) -i\eta^*_{qp}(\omega)}\\
     &= \bv{\frac{1}{2}\gamma_{pq}(\omega') +i\eta_{pq}(\omega') + \frac{1}{2}\gamma_{pq}(\omega) -i\eta_{pq}(\omega)} = \frac{1}{2}\bv{\gamma_{pq}(\omega) + \gamma_{pq}(\omega')} -i\bv{\eta_{pq}(\omega)-\eta_{pq}(\omega')}\\
     \m{H}_{LS}& =  -i\sum_{pq = \alpha\beta}(1-2\delta_{pq})\sum_{\omega, \omega'}\bv{\frac{1}{2}\gamma_{pq}(\omega') +i\eta_{pq}(\omega') - \frac{1}{2}\gamma_{qp}^*(\omega) +i\eta^*_{qp}(\omega)}\\
@@ -326,14 +326,14 @@ Nathan--Rudner型のGKSL方程式は、このRedfield方程式に対し、
 \begin{align}
     \gamma_{pq}(\omega) = \gamma_{pq}(\omega') =  \qty(\hat{\gamma}^{\frac{1}{2}}(\omega)*\hat{\gamma}^{\frac{1}{2}}(\omega'))_{pq}
 \end{align}
-という近似を行い、$l_{\alpha/\beta} = \mp i$とすれば$(1-2\delta_{pq}) = l_pl_q$なので、
+という近似を行い、$l_{\alpha/\beta} = \mp i$とすれば$-(1-2\delta_{pq}) = l^*_pl_q$なので、
 \begin{align}
     \Gamma_{pq}(\omega, \omega') &= \frac{1}{2}\bv{\gamma_{pq}(\omega) + \gamma_{pq}(\omega')} -i\bv{\eta_{pq}(\omega)-\eta_{pq}(\omega')}\nonumber\\
     &\simeq \gamma^{\frac{1}{2}}_{pj}(\omega)*\gamma^{\frac{1}{2}}_{jq}(\omega')
 \end{align}
 より、Redfield方程式(式(\ref{RF_normal}))の第二項(の一部)は、
 \begin{align}
-    &\sum_{p,q,j = \alpha\beta}l_pl_q\sum_{\omega, \omega'}\gamma^{\frac{1}{2}}_{pj}(\omega)*\gamma^{\frac{1}{2}}_{jq}(\omega')\Biggl[c_q[\omega']\rho^I_S(t)[c^\da_{p}[\omega]]\Biggr]\nonumber\\
+    &\sum_{p,q,j = \alpha\beta}l^*_pl_q\sum_{\omega, \omega'}\gamma^{\frac{1}{2}}_{pj}(\omega)*\gamma^{\frac{1}{2}}_{jq}(\omega')\Biggl[c_q[\omega']\rho^I_S(t)[c^\da_{p}[\omega]]\Biggr]\nonumber\\
     &\simeq \sum_{j}\bv{\sum_q \sum_{\omega'}\gamma^{\frac{1}{2}}_{jq}(\omega')l_qc_q[\omega']}\rho_S(t)\bv{\sum_p \sum_{\omega}\gamma^{\frac{1}{2}}_{jp}(\omega)l_pc_p[\omega]}^\da
 \end{align}
 と書ける。新たな演算子

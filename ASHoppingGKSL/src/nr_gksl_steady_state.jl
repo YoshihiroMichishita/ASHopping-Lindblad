@@ -28,8 +28,10 @@ function fermion_ops_2site()
     # Local basis is [|0>, |1>].
     c = C64[0 1; 0 0]
     sigma_z = C64[1 0; 0 -1]
-    c1 = kron(c, I2)
-    c2 = kron(sigma_z, c) # Jordan-Wigner string on site 1
+    #c1 = kron(c, I2)
+    c1 = kron(I2, c)
+    #c2 = kron(sigma_z, c) # Jordan-Wigner string on site 1
+    c2 = kron(c, sigma_z)
     return c1, c2, c1', c2'
 end
 
@@ -107,7 +109,7 @@ end
 function lindblad_super(J::Matrix{C64})
     d = size(J, 1)
     JdJ = J' * J
-    return spost(J', d) * spre(J, d) - 0.5 * spre(JdJ, d) - 0.5 * spost(JdJ, d)
+    return 2*(spost(J', d) * spre(J, d) - 0.5 * spre(JdJ, d) - 0.5 * spost(JdJ, d))
 end
 
 """
@@ -143,14 +145,16 @@ function gamma_eta_from_phi(b::BathSpectrum, p::Symbol, q::Symbol, w::Float64)
 end
 
 """
-Redfield Liouvillian (eqs. 94-95) for the two-bath model.
+Redfield Liouvillian pieces (eq. 95): dissipator superoperator and Lamb shift H_LS.
+Returns (L_diss, H_LS).
 """
-function redfield_liouvillian(m::TwoBathModel)
+function redfield_parts(m::TwoBathModel)
     H = system_hamiltonian(m.sys)
     d = size(H, 1)
     r, _, _ = mixing_angles(m.sys)
-    L = commutator_super(H)
     pq = (:alpha, :beta)
+    L_diss = zeros(C64, d^2, d^2)
+    H_LS = zeros(C64, d, d)
 
     for (site, bath) in ((1, m.bath1), (2, m.bath2))
         ops = coupling_ops_by_frequency(m.sys, site)
@@ -159,43 +163,230 @@ function redfield_liouvillian(m::TwoBathModel)
             wp = sgn_wp * r
             Ap = ops[(p, sgn_w)]   # c_p[w]
             Aq = ops[(q, sgn_wp)]  # c_q[w']
-            pref = (p == q) ? -1.0 : 1.0  # (1 - 2δ_pq)
+            pref = (p == q) ? -1.0 : 1.0  # -(1 - 2δ_pq)
 
-            phi_pq = Phi_from_sigma(bath, p, q, wp)
-            phi_qp = Phi_from_sigma(bath, q, p, w)
+            gamma_w, eta_w = gamma_eta_from_phi(bath, p, q, w)
+            gamma_wp, eta_wp = gamma_eta_from_phi(bath, p, q, wp)
 
-            # Φ_pq(ω') [c_p†(ω), c_q(ω') ρ]
-            t1 = phi_pq * (spre(Ap' * Aq, d) - spost(Ap', d) * spre(Aq, d))
+            Gamma = 0.5 * (gamma_w + gamma_wp) - 1im * (eta_w - eta_wp)
+            coeff_ls = 0.5 * (eta_w + eta_wp) + 0.25im * (gamma_w - gamma_wp)
 
-            # - Φ_qp*(ω) [c_q(ω'), ρ c_p†(ω)]
-            t2 = -conj(phi_qp) * (spost(Ap', d) * spre(Aq, d) - spost(Ap' * Aq, d))
+            # dissipator term: Aq ρ Ap† - 1/2 {Ap† Aq, ρ}
+            #L_diss += pref * Gamma *
+            L_diss += -2pref * Gamma *
+                    (spost(Ap', d) * spre(Aq, d) -
+                       0.5 * spre(Ap' * Aq, d) - 0.5 * spost(Ap' * Aq, d))
 
-            L += pref * (t1 + t2)
+            # Lamb shift term
+            H_LS += pref * coeff_ls * (Ap' * Aq)
         end
     end
-    return L
+
+    H_LS = 0.5 * (H_LS + H_LS')
+    return L_diss, H_LS
 end
+
+"""
+Redfield Liouvillian pieces (eq. 95): dissipator superoperator and Lamb shift H_LS.
+Returns (L_diss, H_LS).
+"""
+function redfield_parts(m::TwoBathModel, ind_bath::Int)
+    H = system_hamiltonian(m.sys)
+    d = size(H, 1)
+    r, _, _ = mixing_angles(m.sys)
+    pq = (:alpha, :beta)
+    L_diss = zeros(C64, d^2, d^2)
+    H_LS = zeros(C64, d, d)
+    bath = (ind_bath == 1) ? m.bath1 : m.bath2
+    site = ind_bath
+    #for (site, bath) in ((1, m.bath1), (2, m.bath2))
+    ops = coupling_ops_by_frequency(m.sys, site)
+    for p in pq, q in pq, sgn_w in (+1, -1), sgn_wp in (+1, -1)
+        w = sgn_w * r
+        wp = sgn_wp * r
+        Ap = ops[(p, sgn_w)]   # c_p[w]
+        Aq = ops[(q, sgn_wp)]  # c_q[w']
+        pref = (p == q) ? -1.0 : 1.0  # (1 - 2δ_pq)
+
+        gamma_w, eta_w = gamma_eta_from_phi(bath, p, q, w)
+        gamma_wp, eta_wp = gamma_eta_from_phi(bath, p, q, wp)
+
+        Gamma = 0.5 * (gamma_w + gamma_wp) - 1im * (eta_w - eta_wp)
+        coeff_ls = 0.5 * (eta_w + eta_wp) + 0.25im * (gamma_w - gamma_wp)
+
+        # dissipator term: Aq ρ Ap† - 1/2 {Ap† Aq, ρ}
+        #L_diss += pref * Gamma *
+        L_diss += -2pref * Gamma *
+                    (spost(Ap', d) * spre(Aq, d) -
+                    0.5 * spre(Ap' * Aq, d) - 0.5 * spost(Ap' * Aq, d))
+
+        # Lamb shift term
+        H_LS += pref * coeff_ls * (Ap' * Aq)
+    end
+    #end
+
+    H_LS = 0.5 * (H_LS + H_LS')
+    return L_diss, H_LS
+end
+
+function normalgksl_parts(m::TwoBathModel)
+    H = system_hamiltonian(m.sys)
+    d = size(H, 1)
+    r, _, _ = mixing_angles(m.sys)
+    pq = (:alpha, :beta)
+    L_diss = zeros(C64, d^2, d^2)
+    H_LS = zeros(C64, d, d)
+
+    for (site, bath) in ((1, m.bath1), (2, m.bath2))
+        ops = coupling_ops_by_frequency(m.sys, site)
+        for p in pq, q in pq, sgn_w in (+1, -1)#, sgn_wp in (+1, -1)
+            sgn_wp = sgn_w
+            w = sgn_w * r
+            wp = sgn_wp * r
+            Ap = ops[(p, sgn_w)]   # c_p[w]
+            Aq = ops[(q, sgn_wp)]  # c_q[w']
+            pref = (p == q) ? -1.0 : 1.0  # (1 - 2δ_pq)
+
+            gamma_w, eta_w = gamma_eta_from_phi(bath, p, q, w)
+            gamma_wp, eta_wp = gamma_eta_from_phi(bath, p, q, wp)
+
+            Gamma = 0.5 * (gamma_w + gamma_wp) - 1im * (eta_w - eta_wp)
+            coeff_ls = 0.5 * (eta_w + eta_wp) + 0.25im * (gamma_w - gamma_wp)
+
+            # dissipator term: Aq ρ Ap† - 1/2 {Ap† Aq, ρ}
+            #L_diss += pref * Gamma *
+            L_diss += -2pref * Gamma *
+                    (spost(Ap', d) * spre(Aq, d) -
+                       0.5 * spre(Ap' * Aq, d) - 0.5 * spost(Ap' * Aq, d))
+
+            # Lamb shift term
+            H_LS += pref * coeff_ls * (Ap' * Aq)
+        end
+    end
+
+    H_LS = 0.5 * (H_LS + H_LS')
+    return L_diss, H_LS
+end
+
+function normalgksl_parts(m::TwoBathModel, ind_bath::Int)
+    H = system_hamiltonian(m.sys)
+    d = size(H, 1)
+    r, _, _ = mixing_angles(m.sys)
+    pq = (:alpha, :beta)
+    L_diss = zeros(C64, d^2, d^2)
+    H_LS = zeros(C64, d, d)
+
+    bath = (ind_bath == 1) ? m.bath1 : m.bath2
+    site = ind_bath
+    ops = coupling_ops_by_frequency(m.sys, site)
+    for p in pq, q in pq, sgn_w in (+1, -1)#, sgn_wp in (+1, -1)
+        sgn_wp = sgn_w
+        w = sgn_w * r
+        wp = sgn_wp * r
+        Ap = ops[(p, sgn_w)]   # c_p[w]
+        Aq = ops[(q, sgn_wp)]  # c_q[w']
+        pref = (p == q) ? -1.0 : 1.0  # (1 - 2δ_pq)
+
+        gamma_w, eta_w = gamma_eta_from_phi(bath, p, q, w)
+        gamma_wp, eta_wp = gamma_eta_from_phi(bath, p, q, wp)
+
+        Gamma = 0.5 * (gamma_w + gamma_wp) - 1im * (eta_w - eta_wp)
+        coeff_ls = 0.5 * (eta_w + eta_wp) + 0.25im * (gamma_w - gamma_wp)
+
+        # dissipator term: Aq ρ Ap† - 1/2 {Ap† Aq, ρ}
+        #L_diss += pref * Gamma *
+        L_diss += -2pref * Gamma *
+                (spost(Ap', d) * spre(Aq, d) -
+                    0.5 * spre(Ap' * Aq, d) - 0.5 * spost(Ap' * Aq, d))
+
+        # Lamb shift term
+        H_LS += pref * coeff_ls * (Ap' * Aq)
+    end
+
+    H_LS = 0.5 * (H_LS + H_LS')
+    return L_diss, H_LS
+end
+
+"""
+Redfield Liouvillian (eq. 95) for the two-bath model.
+"""
+function redfield_liouvillian(m::TwoBathModel)
+    H = system_hamiltonian(m.sys)
+    d = size(H, 1)
+    L_diss, H_LS = redfield_parts(m)
+    return commutator_super(H + H_LS) + L_diss
+end
+
+function normalgksl_liouvillian(m::TwoBathModel)
+    H = system_hamiltonian(m.sys)
+    d = size(H, 1)
+    L_diss, H_LS = normalgksl_parts(m)
+    return commutator_super(H + H_LS) + L_diss
+end
+
+function fermi(e::Float64, mu::Float64, beta::Float64)
+    return 1.0 / (exp(beta * (e - mu)) + 1.0)
+end
+
+"""
+Example finite-correlation bath self-energy model.
+"""
+# mu is chemical potential
+function make_bath(; Gamma::Float64, mu::Float64, beta::Float64, tau_c::Float64)
+    Sigma = (w::Float64) -> begin
+        f = fermi(w, mu, beta)
+        -im * Gamma * (1 - f) / (1 - im * w * tau_c)
+    end
+    SigmaTilde = (w::Float64) -> begin
+        f = fermi(w, mu, beta)
+        -im * Gamma * f / (1 - im * w * tau_c)
+    end
+    return BathSpectrum(Sigma, SigmaTilde)
+end
+
+# mu is energy potential
+function make_bath2(; Gamma::Float64, mu::Float64, beta::Float64, tau_c::Float64)
+    Sigma = (w::Float64) -> begin
+        f = fermi(w, 0.0, beta)
+        -im * Gamma * (1 - f) / (1 - im * (w - mu) * tau_c)
+    end
+    SigmaTilde = (w::Float64) -> begin
+        f = fermi(w, 0.0, beta)
+        -im * Gamma * f / (1 - im * (w - mu) * tau_c)
+    end
+    return BathSpectrum(Sigma, SigmaTilde)
+end
+
 
 """
 γ-matrix square root (eqs. 84-86, 100) at frequency w.
 """
 function gammahat_sqrt(b::BathSpectrum, w::Float64)
     sw = b.Sigma(w)
-    st = conj(b.SigmaTilde(-w))
+    #st = conj(b.SigmaTilde(-w))
+    st = b.SigmaTilde(-w)
 
     gamma = imag(sw + st)     # eq. (82)
     gamma_p = imag(sw - st)   # eq. (83)
 
-    gamma_m = gamma + gamma_p
-    gamma_s = gamma - gamma_p
+    #gamma_m = gamma + gamma_p
+    #gamma_s = gamma - gamma_p
 
-    gm = sqrt(complex(gamma_m))
-    gs = sqrt(complex(gamma_s))
+    g = [gamma 1.0im*gamma_p; -1.0im*gamma_p gamma]
+    eigvals, eigvecs = eigen(Hermitian(g))
+    sqrt_eigvals = sqrt.(complex.(eigvals))
+    sqrt_g = eigvecs * Diagonal(sqrt_eigvals) * eigvecs'
+    return sqrt_g
 
-    return (1 / sqrt(2)) * C64[
-        (gm + gs)         im * (gm - gs)
-        -im * (gm - gs)   (gm + gs)
-    ]
+    #gm = sqrt(complex(gamma_m))
+    #gm = sqrt(gamma_m)
+    #gs = sqrt(complex(gamma_s))
+    #gs = sqrt(gamma_s)
+
+    #return (1 / sqrt(2)) * C64[
+    #    (gm + gs)         im * (gm - gs)
+    #    -im * (gm - gs)   (gm + gs)
+    #]
 end
 
 """
@@ -254,9 +445,94 @@ function nr_gksl_liouvillian(m::TwoBathModel)
     return L
 end
 
-"""
-Return jump operators for each bath/site in the Nathan-Rudner GKSL construction.
-"""
+function nr_gksl_liouvillian_diss(m::TwoBathModel)
+    H = system_hamiltonian(m.sys)
+    d = size(H, 1)
+    r, _, _ = mixing_angles(m.sys)
+    Hls_total = zeros(C64, d, d)
+    pset = (:alpha, :beta)
+    pidx = Dict(:alpha => 1, :beta => 2)
+    lfac = Dict(:alpha => -im, :beta => im) # l_{α/β} = ∓ i
+
+
+    L = [zeros(C64, size(commutator_super(H))...), zeros(C64, size(commutator_super(H))...)]
+    
+    # Dissipator (Nathan-Rudner GKSL)
+    for (site, bath) in ((1, m.bath1), (2, m.bath2))
+        ops = coupling_ops_by_frequency(m.sys, site)
+        jumps = Matrix{C64}[]
+        for p in pset
+            J = zeros(C64, d, d)
+            for sgn in (+1, -1)
+                sqg = gammahat_sqrt(bath, sgn * r)
+                for q in pset
+                    J += sqg[pidx[p], pidx[q]] * lfac[q] * ops[(q, sgn)]
+                end
+            end
+            push!(jumps, J)
+        end
+        for J in jumps
+            L[site] += lindblad_super(J)
+        end
+    end
+    return L
+end
+
+function steady_state_from_liouvillian(L::Matrix{C64}; d::Int)
+    I_d = Matrix{C64}(I, d, d)
+    tr_row = reshape(vec(transpose(I_d)), 1, :)
+    A = [L; tr_row]
+    b = zeros(C64, size(L, 1) + 1)
+    b[end] = 1 + 0im
+    rho_vec = A \ b
+    rho = reshape(rho_vec, d, d)
+    rho = 0.5 * (rho + rho')
+    rho ./= real(tr(rho))
+    return rho
+end
+
+function steady_states(m::TwoBathModel)
+    H = system_hamiltonian(m.sys)
+    d = size(H, 1)
+    Lr = redfield_liouvillian(m)
+    Lg = nr_gksl_liouvillian(m)
+    return steady_state_from_liouvillian(Lr; d), steady_state_from_liouvillian(Lg; d), H
+end
+
+function steady_states3(m::TwoBathModel)
+    H = system_hamiltonian(m.sys)
+    d = size(H, 1)
+    Lr = redfield_liouvillian(m)
+    Lng = normalgksl_liouvillian(m)
+    Lg = nr_gksl_liouvillian(m)
+    return steady_state_from_liouvillian(Lr; d), steady_state_from_liouvillian(Lng; d), steady_state_from_liouvillian(Lg; d), H
+end
+
+
+function current_operator(p::SystemParams)
+    c1, c2, cd1, cd2 = fermion_ops_2site()
+    return im * p.t * (cd1 * c2 - cd2 * c1)
+end
+
+function current_operator_LS(p::SystemParams, H_LS::Matrix{C64})
+    c1, c2, cd1, cd2 = fermion_ops_2site()
+    r = 0.5*(cd1*c1 - cd2*c2)
+    H = system_hamiltonian(p)
+    H_S = H + H_LS
+    j = im*(H_S * r - r * H_S)
+    return j
+end
+
+function current_expectation(rho::Matrix{C64}, p::SystemParams)
+    Jop = current_operator(p)
+    return real(tr(Jop * rho))
+end
+
+function current_expectation(rho::Matrix{C64}, p::SystemParams, H_LS::Matrix{C64})
+    Jop = current_operator_LS(p, H_LS)
+    return real(tr(Jop * rho))
+end
+
 function nr_jumps_by_site(m::TwoBathModel)
     r, _, _ = mixing_angles(m.sys)
     pset = (:alpha, :beta)
@@ -282,323 +558,80 @@ function nr_jumps_by_site(m::TwoBathModel)
     return jumps_by_site
 end
 
-"""
-Compute particle gain/loss rates for each site using GKSL jump operators.
-Returns a Dict(site => (gain, loss)) for a given density matrix rho.
-"""
-function hs_coeffs(op::AbstractMatrix{C64}, basis::Dict{Symbol, AbstractMatrix{C64}})
-    coeffs = Dict{Symbol, C64}()
-    for (k, B) in basis
-        denom = tr(B' * B)
-        coeffs[k] = denom == 0 ? 0 + 0im : tr(B' * op) / denom
-    end
-    return coeffs
-end
-
-function redfield_gain_loss_local(
-    bath::BathSpectrum,
-    ops,
-    r::Float64,
-    rho::Matrix{C64},
-    site::Int,
-    basis::Dict{Symbol, AbstractMatrix{C64}}
-)
+function redfield_gain_loss(m::TwoBathModel, bathind::Int, rho::Matrix{C64})
+    H = system_hamiltonian(m.sys)
+    d = size(H, 1)
+    r, _, _ = mixing_angles(m.sys)
     pq = (:alpha, :beta)
-    c_key = site == 1 ? :c1 : :c2
-    cd_key = site == 1 ? :cd1 : :cd2
-    n = basis[cd_key] * basis[c_key]
+    Loss_site = [0.0, 0.0]
+    Gain_site = [0.0, 0.0]
 
-    gain = 0.0
-    loss = 0.0
+    c1, c2, cd1, cd2 = fermion_ops_2site()
+    loss_ops = Dict(1 => c1, 2 => c2)
+    gain_ops = Dict(1 => cd1, 2 => cd2)
 
+    mybath = (bathind == 1) ? m.bath1 : m.bath2
+
+    ops = coupling_ops_by_frequency(m.sys, bathind)
     for p in pq, q in pq, sgn_w in (+1, -1), sgn_wp in (+1, -1)
         w = sgn_w * r
         wp = sgn_wp * r
         Ap = ops[(p, sgn_w)]   # c_p[w]
         Aq = ops[(q, sgn_wp)]  # c_q[w']
-        pref = (p == q) ? -1.0 : 1.0  # (1 - 2δ_pq)
+        pref = (p == q) ? 1.0 : -1.0  # -(1 - 2δ_pq)
 
-        phi_pq = Phi_from_sigma(bath, p, q, wp)
-        phi_qp = Phi_from_sigma(bath, q, p, w)
+        gamma_w, eta_w = gamma_eta_from_phi(mybath, p, q, w)
+        gamma_wp, eta_wp = gamma_eta_from_phi(mybath, p, q, wp)
 
-        # Sandwich terms only:
-        # -phi_pq [Ap' ρ Aq]  and  -phi_qp* [Aq ρ Ap']
-        for (X, Y, coeff) in ((Ap', Aq, -phi_pq), (Aq, Ap', -conj(phi_qp)))
-            coeffs_X = hs_coeffs(X, basis)
-            coeffs_Y = hs_coeffs(Y, basis)
+        Gamma = 0.5 * (gamma_w + gamma_wp) - 1im * (eta_w - eta_wp)
 
-            cg = coeffs_X[cd_key] * coeffs_Y[c_key]  # c† ρ c
-            cl = coeffs_X[c_key] * coeffs_Y[cd_key]  # c ρ c†
-
-            if cg != 0
-                gain += real(pref * coeff * cg * tr(n * (basis[cd_key] * rho * basis[c_key])))
-            end
-            if cl != 0
-                loss += real(pref * coeff * cl * tr(n * (basis[c_key] * rho * basis[cd_key])))
-            end
+        # dissipator term: Aq ρ Ap† - 1/2 {Ap† Aq, ρ}
+        for site in (1, 2)
+            loss_op = loss_ops[site]
+            gain_op = gain_ops[site]
+            Aq_gain = Aq .* abs.(gain_op)
+            Ap_gain = Ap .* abs.(gain_op)
+            Aq_loss = Aq .* abs.(loss_op)
+            Ap_loss = Ap .* abs.(loss_op)
+            Gain_site[site] += 2real(pref * Gamma * tr(Aq_gain * rho * Ap_gain'))
+            Loss_site[site] += 2real(pref * Gamma * tr(Aq_loss * rho * Ap_loss'))
         end
     end
-
-    return gain, loss
+    return Gain_site, Loss_site
 end
 
-"""
-Compute particle gain/loss and net flow for each site.
-method = :gksl uses NR-GKSL jumps; method = :redfield uses Redfield superoperator split.
-Returns Dict(site => (gain, loss, net)).
-"""
-function site_gain_loss(m::TwoBathModel, rho::Matrix{C64}; method::Symbol = :gksl)
+function site_gain_loss_bath(m::TwoBathModel, rho::Matrix{C64}; method::Symbol = :gksl)
     c1, c2, cd1, cd2 = fermion_ops_2site()
-    nops = Dict(1 => cd1 * c1, 2 => cd2 * c2)
-    results = Dict{Int, Tuple{Float64, Float64, Float64}}()
+    loss_ops = Dict(1 => c1, 2 => c2)
+    gain_ops = Dict(1 => cd1, 2 => cd2)
+    results = Dict{Tuple{Int, Int}, Tuple{Float64, Float64, Float64}}()
 
+    # Nathan--Rudner GKSL: sum over jumps for each site and bath
     if method == :gksl
         jumps_by_site = nr_jumps_by_site(m)
-        for site in (1, 2)
-            n = nops[site]
+        for bath in (1, 2), site in (1, 2)
             gain = 0.0
             loss = 0.0
-            for J in jumps_by_site[site]
-                JdJ = J' * J
-                gain += real(tr(n * (J * rho * J')))
-                loss += real(tr(n * (0.5 * (JdJ * rho + rho * JdJ))))
+            for J in jumps_by_site[bath]
+                loss_J = J .* abs.(loss_ops[site])
+                gain_J = J .* abs.(gain_ops[site])
+                gain += 2real(tr(gain_J * rho * gain_J'))
+                loss += 2real(tr(loss_J * rho * loss_J'))
             end
-            results[site] = (gain, loss, gain - loss)
+            results[(bath, site)] = (gain, loss, gain - loss)
         end
         return results
     elseif method == :redfield
-        r, _, _ = mixing_angles(m.sys)
-        basis = Dict(:c1 => c1, :cd1 => cd1, :c2 => c2, :cd2 => cd2)
-        for (site, bath) in ((1, m.bath1), (2, m.bath2))
-            ops = coupling_ops_by_frequency(m.sys, site)
-            gain, loss = redfield_gain_loss_local(bath, ops, r, rho, site, basis)
-            results[site] = (gain, loss, gain - loss)
+        for bath in (1, 2)
+            gain_site, loss_site = redfield_gain_loss(m, bath, rho)
+            for site in (1, 2)
+                results[(bath, site)] = (gain_site[site], loss_site[site], gain_site[site] - loss_site[site])
+            end
         end
         return results
     else
         error("method must be :gksl or :redfield")
     end
-end
-
-function steady_state_from_liouvillian(L::Matrix{C64}; d::Int)
-    I_d = Matrix{C64}(I, d, d)
-    tr_row = reshape(vec(transpose(I_d)), 1, :)
-    A = [L; tr_row]
-    b = zeros(C64, size(L, 1) + 1)
-    b[end] = 1 + 0im
-    rho_vec = A \ b
-    rho = reshape(rho_vec, d, d)
-    rho = 0.5 * (rho + rho')
-    rho ./= real(tr(rho))
-    return rho
-end
-
-function steady_states(m::TwoBathModel)
-    H = system_hamiltonian(m.sys)
-    d = size(H, 1)
-    Lr = redfield_liouvillian(m)
-    Lg = nr_gksl_liouvillian(m)
-    return steady_state_from_liouvillian(Lr; d), steady_state_from_liouvillian(Lg; d), H
-end
-
-function fermi(e::Float64, mu::Float64, beta::Float64)
-    return 1.0 / (exp(beta * (e - mu)) + 1.0)
-end
-
-function test_c1_on_11(; verbose::Bool = true)
-    c1, c2, _, _ = fermion_ops_2site()
-    v11 = C64[0, 0, 0, 1]
-    v01 = C64[0, 1, 0, 0]
-
-    got_c1_11 = c1 * v11
-    exp_c1_11 = C64[0, 1, 0, 0]   # c1|11> = |01>
-    ok1 = isapprox(got_c1_11, exp_c1_11; atol = 1e-12, rtol = 0.0)
-
-    got_c1_01 = c1 * v01
-    exp_c1_01 = C64[0, 0, 0, 0]   # c1|01> = 0
-    ok2 = isapprox(got_c1_01, exp_c1_01; atol = 1e-12, rtol = 0.0)
-
-    got_c2_11 = c2 * v11
-    exp_c2_11 = C64[0, 0, -1, 0]  # c2|11> = -|10> (Jordan-Wigner sign)
-    ok3 = isapprox(got_c2_11, exp_c2_11; atol = 1e-12, rtol = 0.0)
-
-    ok = ok1 && ok2 && ok3
-    if verbose
-        println("basis order = [|00>, |01>, |10>, |11>]")
-        println("input |11> vector: ", v11)
-        println("input |01> vector: ", v01)
-        println()
-        println("c1 * |11> = ", got_c1_11, " ; expected = ", exp_c1_11, " ; pass = ", ok1)
-        println("c1 * |01> = ", got_c1_01, " ; expected = ", exp_c1_01, " ; pass = ", ok2)
-        println("c2 * |11> = ", got_c2_11, " ; expected = ", exp_c2_11, " ; pass = ", ok3)
-        println("all tests pass = ", ok)
-    end
-    return ok, (got_c1_11, got_c1_01, got_c2_11), (exp_c1_11, exp_c1_01, exp_c2_11)
-end
-
-function random_density_matrix(d::Int; seed::Int = 1234)
-    rng = MersenneTwister(seed)
-    x = randn(rng, C64, d, d)
-    rho = x * x'
-    rho ./= real(tr(rho))
-    return rho
-end
-
-function test_redfield_trace_preservation(; dt::Float64 = 0.05, nsteps::Int = 40, verbose::Bool = true)
-    sys = SystemParams(1.0, 0.8)
-    bathL = make_bath(Gamma = 0.15, mu = 0.6, beta = 8.0, tau_c = 0.2)
-    bathR = make_bath(Gamma = 0.15, mu = -0.6, beta = 8.0, tau_c = 0.2)
-    model = TwoBathModel(sys, bathL, bathR)
-
-    L = redfield_liouvillian(model)
-    d = 4
-    rho0 = random_density_matrix(d)
-    rho_vec = vec(rho0)
-
-    # Check generator-level trace conservation: Tr(Lρ) = 0
-    drho0 = reshape(L * rho_vec, d, d)
-    trdot0 = tr(drho0)
-
-    # Check finite-time propagator E = exp(dt * L)
-    E = exp(dt * L)
-    max_trace_dev = 0.0
-    last_trace = tr(rho0)
-    for _ in 1:nsteps
-        rho_vec = E * rho_vec
-        rho = reshape(rho_vec, d, d)
-        last_trace = tr(rho)
-        max_trace_dev = max(max_trace_dev, abs(last_trace - 1))
-    end
-
-    ok = isapprox(trdot0, 0 + 0im; atol = 1e-10, rtol = 0.0) &&
-         isapprox(last_trace, 1 + 0im; atol = 1e-10, rtol = 0.0) &&
-         max_trace_dev < 1e-9
-
-    if verbose
-        println("Redfield trace-preservation test")
-        println("dt = ", dt, ", nsteps = ", nsteps)
-        println("Tr(rho0) = ", tr(rho0))
-        println("Tr(L*rho0) = ", trdot0)
-        println("Tr(rho_final) = ", last_trace)
-        println("max |Tr(rho_t)-1| = ", max_trace_dev)
-        println("test pass = ", ok)
-    end
-    return ok, trdot0, last_trace, max_trace_dev
-end
-
-function thermal_grand_canonical_state(H::Matrix{C64}, Nop::Matrix{C64}, beta::Float64, mu::Float64)
-    rho = exp(-beta * (H - mu * Nop))
-    rho ./= tr(rho)
-    return rho
-end
-
-function mode_occupations(rho::Matrix{C64}, p::SystemParams)
-    cplus, cminus = normal_modes(p)
-    nplus = real(tr((cplus' * cplus) * rho))
-    nminus = real(tr((cminus' * cminus) * rho))
-    return nplus, nminus
-end
-
-function current_operator(p::SystemParams)
-    c1, c2, cd1, cd2 = fermion_ops_2site()
-    return im * p.t * (cd1 * c2 - cd2 * c1)
-end
-
-function current_expectation(rho::Matrix{C64}, p::SystemParams)
-    Jop = current_operator(p)
-    return real(tr(Jop * rho))
-end
-
-function test_equilibrium_fermi_distribution(;
-    omega::Float64 = 0.8,
-    mu::Float64 = 0.0,
-    beta::Float64 = 8.0,
-    Gamma::Float64 = 0.15,
-    tau_c::Float64 = 0.2,
-    occ_tol::Float64 = 5e-2,
-    rho_tol::Float64 = 1e-1,
-    verbose::Bool = true
-)
-    sys = SystemParams(1.0, omega)
-    bathL = make_bath(Gamma = Gamma, mu = mu, beta = beta, tau_c = tau_c)
-    bathR = make_bath(Gamma = Gamma, mu = mu, beta = beta, tau_c = tau_c)
-    model = TwoBathModel(sys, bathL, bathR)
-
-    rho_red, rho_gksl, H = steady_states(model)
-    c1, c2, cd1, cd2 = fermion_ops_2site()
-    Nop = cd1 * c1 + cd2 * c2
-    rho_th = thermal_grand_canonical_state(H, Nop, beta, mu)
-
-    r, _, _ = mixing_angles(sys)
-    f_plus = fermi(r, mu, beta)
-    f_minus = fermi(-r, mu, beta)
-
-    npr, nmr = mode_occupations(rho_red, sys)
-    npg, nmg = mode_occupations(rho_gksl, sys)
-
-    occ_err_red = max(abs(npr - f_plus), abs(nmr - f_minus))
-    occ_err_gksl = max(abs(npg - f_plus), abs(nmg - f_minus))
-
-    rho_err_red = opnorm(rho_red - rho_th, 1)
-    rho_err_gksl = opnorm(rho_gksl - rho_th, 1)
-
-    ok_red = occ_err_red < occ_tol && rho_err_red < rho_tol
-    ok_gksl = occ_err_gksl < occ_tol && rho_err_gksl < rho_tol
-    ok = ok_red && ok_gksl
-
-    if verbose
-        println("Equilibrium Fermi-distribution test (omega=$(omega), mu_L=mu_R=$(mu), beta=$(beta))")
-        println("target Fermi occupations: n+(r) = $(f_plus), n-(-r) = $(f_minus)")
-        println("Redfield occupations: n+ = $(npr), n- = $(nmr), max occ error = $(occ_err_red)")
-        println("NR-GKSL occupations: n+ = $(npg), n- = $(nmg), max occ error = $(occ_err_gksl)")
-        println("||rho_red - rho_th||_1  = $(rho_err_red)")
-        println("||rho_gksl - rho_th||_1 = $(rho_err_gksl)")
-        println("thresholds: occ_tol=$(occ_tol), rho_tol=$(rho_tol)")
-        println("pass Redfield = $(ok_red), pass GKSL = $(ok_gksl), all pass = $(ok)")
-    end
-
-    return ok, occ_err_red, occ_err_gksl, rho_err_red, rho_err_gksl
-end
-
-function test_current_zero_and_finite(;
-    beta::Float64 = 8.0,
-    Gamma::Float64 = 0.15,
-    tau_c::Float64 = 0.2,
-    mu_eq::Float64 = 0.0,
-    muL_bias::Float64 = 0.6,
-    muR_bias::Float64 = -0.6,
-    zero_tol::Float64 = 1e-10,
-    finite_tol::Float64 = 1e-4,
-    verbose::Bool = true
-)
-    # Case 1: equilibrium (omega=0, muL=muR=0) -> current should vanish.
-    sys_eq = SystemParams(1.0, 0.0)
-    bathL_eq = make_bath(Gamma = Gamma, mu = mu_eq, beta = beta, tau_c = tau_c)
-    bathR_eq = make_bath(Gamma = Gamma, mu = mu_eq, beta = beta, tau_c = tau_c)
-    model_eq = TwoBathModel(sys_eq, bathL_eq, bathR_eq)
-    rho_red_eq, _, _ = steady_states(model_eq)
-    j_eq = current_expectation(rho_red_eq, sys_eq)
-    ok_zero = abs(j_eq) < zero_tol
-
-    # Case 2: biased chemical potentials (Redfield) -> finite current.
-    sys_bias = SystemParams(1.0, 0.0)
-    bathL_bias = make_bath(Gamma = Gamma, mu = muL_bias, beta = beta, tau_c = tau_c)
-    bathR_bias = make_bath(Gamma = Gamma, mu = muR_bias, beta = beta, tau_c = tau_c)
-    model_bias = TwoBathModel(sys_bias, bathL_bias, bathR_bias)
-    rho_red_bias, _, _ = steady_states(model_bias)
-    j_bias = current_expectation(rho_red_bias, sys_bias)
-    ok_finite = abs(j_bias) > finite_tol
-
-    ok = ok_zero && ok_finite
-    if verbose
-        println("Current test with J = i t (c1†c2 - c2†c1)")
-        println("equilibrium case: omega=0, muL=muR=$(mu_eq)")
-        println("  Redfield current = $(j_eq), |J|<$(zero_tol) => $(ok_zero)")
-        println("biased case: omega=0, muL=$(muL_bias), muR=$(muR_bias)")
-        println("  Redfield current = $(j_bias), |J|>$(finite_tol) => $(ok_finite)")
-        println("all pass = $(ok)")
-    end
-    return ok, j_eq, j_bias
 end
 
 function test_gain_loss_zero_equilibrium(;
@@ -611,43 +644,96 @@ function test_gain_loss_zero_equilibrium(;
     verbose::Bool = true
 )
     sys = SystemParams(1.0, omega)
-    bathL = make_bath(Gamma = Gamma, mu = mu, beta = beta, tau_c = tau_c)
+    bathL = make_bath(Gamma = Gamma, mu = -mu, beta = beta, tau_c = tau_c)
     bathR = make_bath(Gamma = Gamma, mu = mu, beta = beta, tau_c = tau_c)
     model = TwoBathModel(sys, bathL, bathR)
 
     rho_red, rho_gksl, _ = steady_states(model)
 
-    gl_red = site_gain_loss(model, rho_red; method = :redfield)
-    gl_gksl = site_gain_loss(model, rho_gksl; method = :gksl)
+    gl_red = site_gain_loss_bath(model, rho_red; method = :redfield)
+    gl_gksl = site_gain_loss_bath(model, rho_gksl; method = :gksl)
 
-    ok_red = all(abs(gl_red[site][3]) < tol for site in (1, 2))
-    ok_gksl = all(abs(gl_gksl[site][3]) < tol for site in (1, 2))
+    ok_red = all(abs(gl_red[(bath,site)][3]) < tol for site in (1, 2), bath in (1,2))
+    ok_gksl = all(abs(gl_gksl[(bath,site)][3]) < tol for site in (1, 2), bath in (1,2))
     ok = ok_red && ok_gksl
 
     if verbose
-        println("Gain-Loss net flow test (muL=muR=$(mu), omega=$(omega))")
+        println("Gain-Loss net flow test (muL=$( -mu ), muR=$(mu), omega=$(omega))")
         println("tolerance = $(tol)")
-        println("Redfield net: site1=$(gl_red[1][3]), site2=$(gl_red[2][3]) => pass=$(ok_red)")
-        println("GKSL net:    site1=$(gl_gksl[1][3]), site2=$(gl_gksl[2][3]) => pass=$(ok_gksl)")
+        println("Redfield gain: (bath, site); (1,1)=$(gl_red[(1,1)][1]), (1,2)=$(gl_red[(1,2)][1]), (2,1)=$(gl_red[(2,1)][1]), (2,2)=$(gl_red[(2,2)][1])")
+        println("GKSL gain:    (bath, site); (1,1)=$(gl_gksl[(1,1)][1]), (1,2)=$(gl_gksl[(1,2)][1]), (2,1)=$(gl_gksl[(2,1)][1]), (2,2)=$(gl_gksl[(2,2)][1])")
+        println("Redfield loss: (bath, site); (1,1)=$(gl_red[(1,1)][2]), (1,2)=$(gl_red[(1,2)][2]), (2,1)=$(gl_red[(2,1)][2]), (2,2)=$(gl_red[(2,2)][2])")
+        println("GKSL loss:    (bath, site); (1,1)=$(gl_gksl[(1,1)][2]), (1,2)=$(gl_gksl[(1,2)][2]), (2,1)=$(gl_gksl[(2,1)][2]), (2,2)=$(gl_gksl[(2,2)][2])")
+        println("Redfield net: (bath, site); (1,1)=$(gl_red[(1,1)][3]), (1,2)=$(gl_red[(1,2)][3]), (2,1)=$(gl_red[(2,1)][3]), (2,2)=$(gl_red[(2,2)][3]) => pass=$(ok_red)")
+        println("GKSL net:    (bath, site); (1,1)=$(gl_gksl[(1,1)][3]), (1,2)=$(gl_gksl[(1,2)][3]), (2,1)=$(gl_gksl[(2,1)][3]), (2,2)=$(gl_gksl[(2,2)][3]) => pass=$(ok_gksl)")
         println("all pass = $(ok)")
     end
 
     return ok, gl_red, gl_gksl
 end
 
-"""
-Example finite-correlation bath self-energy model.
-"""
-function make_bath(; Gamma::Float64, mu::Float64, beta::Float64, tau_c::Float64)
-    Sigma = (w::Float64) -> begin
-        f = fermi(w, mu, beta)
-        -im * Gamma * (1 - f) / (1 - im * w * tau_c)
+function test_current_zero_and_finite2(;
+    beta::Float64 = 8.0,
+    omega::Float64 = 0.0, 
+    Gamma::Float64 = 0.15,
+    tau_c::Float64 = 0.2,
+    mu_eq::Float64 = 0.0,
+    muL_bias::Float64 = 0.6,
+    muR_bias::Float64 = -0.6,
+    zero_tol::Float64 = 1e-10,
+    finite_tol::Float64 = 1e-4,
+    verbose::Bool = true
+)
+    # Case 1: equilibrium (omega=0, muL=muR=0) -> current should vanish.
+    sys_eq = SystemParams(1.0, omega)
+    bathL_eq = make_bath(Gamma = Gamma, mu = mu_eq, beta = beta, tau_c = tau_c)
+    bathR_eq = make_bath(Gamma = Gamma, mu = mu_eq, beta = beta, tau_c = tau_c)
+    model_eq = TwoBathModel(sys_eq, bathL_eq, bathR_eq)
+    rho_red_eq, rho_ngksl_eq, rho_gksl_eq, _ = steady_states3(model_eq)
+    #rho_red_eq, rho_gksl_eq, _ = steady_states(model_eq)
+    L_diss_eq, H_LS_eq = redfield_parts(model_eq)
+    _, H_LS_gksl_eq = normalgksl_parts(model_eq)
+    j_eq = current_expectation(rho_red_eq, sys_eq, H_LS_eq)
+    j_eq_ngksl = current_expectation(rho_ngksl_eq, sys_eq, H_LS_gksl_eq)
+    j_eq_gksl = current_expectation(rho_gksl_eq, sys_eq, H_LS_eq)
+    #j_eq_gksl = current_expectation(rho_gksl_eq, sys_eq, H_LS_gksl_eq)
+    #j_eq = current_expectation(rho_red_eq, sys_eq)
+    #j_eq_gksl = current_expectation(rho_gksl_eq, sys_eq)
+    ok_zero = abs(j_eq) < zero_tol
+    ok_zero_gksl = abs(j_eq_gksl) < zero_tol
+
+    # Case 2: biased chemical potentials (Redfield) -> finite current.
+    sys_bias = SystemParams(1.0, omega)
+    bathL_bias = make_bath(Gamma = Gamma, mu = muL_bias, beta = beta, tau_c = tau_c)
+    bathR_bias = make_bath(Gamma = Gamma, mu = muR_bias, beta = beta, tau_c = tau_c)
+    model_bias = TwoBathModel(sys_bias, bathL_bias, bathR_bias)
+    #rho_red_bias, rho_gksl_bias, _ = steady_states(model_bias)
+    rho_red_bias, rho_ngksl_bias, rho_gksl_bias, _ = steady_states3(model_bias)
+    L_diss_bias, H_LS_bias = redfield_parts(model_bias)
+    _, H_LS_gksl_bias = normalgksl_parts(model_bias)
+    j_bias = current_expectation(rho_red_bias, sys_bias, H_LS_bias)
+    j_bias_ngksl = current_expectation(rho_ngksl_bias, sys_bias, H_LS_gksl_bias)
+    j_bias_gksl = current_expectation(rho_gksl_bias, sys_bias, H_LS_bias)
+    #j_bias_gksl = current_expectation(rho_gksl_bias, sys_bias, H_LS_gksl_bias)
+    #j_bias = current_expectation(rho_red_bias, sys_bias)
+    #j_bias_gksl = current_expectation(rho_gksl_bias, sys_bias)
+    ok_finite = abs(j_bias) > finite_tol
+    ok_finite_gksl = abs(j_bias_gksl) > finite_tol
+
+    ok = ok_zero && ok_finite && ok_zero_gksl
+    if verbose
+        println("Current test with J = i t (c1†c2 - c2†c1)")
+        println("equilibrium case: omega=$(omega), muL=muR=$(mu_eq)")
+        println("  Redfield current = $(j_eq), |J|<$(zero_tol) => $(ok_zero)")
+        println("  Conventional GKSL current = $(j_eq_ngksl), |J|<$(zero_tol) => $(ok_zero)")
+        println("  NR GKSL current = $(j_eq_gksl), |J|<$(zero_tol) => $(ok_zero)")
+        println("biased case: omega=0, muL=$(muL_bias), muR=$(muR_bias)")
+        println("  Redfield current = $(j_bias), |J|>$(finite_tol) => $(ok_finite)")
+        println("  Conventional GKSL current = $(j_bias_ngksl), |J|>$(finite_tol) => $(ok_finite)")
+        println("  NR GKSL current = $(j_bias_gksl), |J|>$(finite_tol) => $(ok_finite)")
+        println("all pass = $(ok)")
     end
-    SigmaTilde = (w::Float64) -> begin
-        f = fermi(w, mu, beta)
-        -im * Gamma * f / (1 - im * w * tau_c)
-    end
-    return BathSpectrum(Sigma, SigmaTilde)
+    return ok, j_eq, j_bias
 end
 
 function main()
