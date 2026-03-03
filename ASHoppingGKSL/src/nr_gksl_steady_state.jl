@@ -186,6 +186,46 @@ function redfield_parts(m::TwoBathModel)
     return L_diss, H_LS
 end
 
+function redfield_Heff(m::TwoBathModel)
+    H = system_hamiltonian(m.sys)
+    d = size(H, 1)
+    r, _, _ = mixing_angles(m.sys)
+    pq = (:alpha, :beta)
+    L_diss = zeros(C64, d^2, d^2)
+    H_LS = zeros(C64, d, d)
+    H_g = zeros(C64, d, d)
+
+    for (site, bath) in ((1, m.bath1), (2, m.bath2))
+        ops = coupling_ops_by_frequency(m.sys, site)
+        for p in pq, q in pq, sgn_w in (+1, -1), sgn_wp in (+1, -1)
+            w = sgn_w * r
+            wp = sgn_wp * r
+            Ap = ops[(p, sgn_w)]   # c_p[w]
+            Aq = ops[(q, sgn_wp)]  # c_q[w']
+            pref = (p == q) ? -1.0 : 1.0  # -(1 - 2δ_pq)
+
+            gamma_w, eta_w = gamma_eta_from_phi(bath, p, q, w)
+            gamma_wp, eta_wp = gamma_eta_from_phi(bath, p, q, wp)
+
+            Gamma = 0.5 * (gamma_w + gamma_wp) - 1im * (eta_w - eta_wp)
+            coeff_ls = 0.5 * (eta_w + eta_wp) + 0.25im * (gamma_w - gamma_wp)
+
+            # dissipator term: Aq ρ Ap† - 1/2 {Ap† Aq, ρ}
+            #L_diss += pref * Gamma *
+            L_diss += -2pref * Gamma *
+                    (spost(Ap', d) * spre(Aq, d) -
+                       0.5 * spre(Ap' * Aq, d) - 0.5 * spost(Ap' * Aq, d))
+
+            # Lamb shift term
+            H_LS += pref * coeff_ls  * (Ap' * Aq)
+            H_g += pref * 1.0im*Gamma * (Ap' * Aq)
+        end
+    end
+
+    H_LS = 0.5 * (H_LS + H_LS')
+    return H_LS, H_g
+end
+
 """
 Redfield Liouvillian pieces (eq. 95): dissipator superoperator and Lamb shift H_LS.
 Returns (L_diss, H_LS).
@@ -224,6 +264,48 @@ function redfield_parts(m::TwoBathModel, ind_bath::Int)
         H_LS += pref * coeff_ls * (Ap' * Aq)
     end
     #end
+
+    H_LS = 0.5 * (H_LS + H_LS')
+    return L_diss, H_LS
+end
+
+function redfield_parts_additional(m::TwoBathModel, ind_bath::Int, additional_H::Float64)
+    H = system_hamiltonian(m.sys)
+    d = size(H, 1)
+    r, _, _ = mixing_angles(m.sys)
+    pq = (:alpha, :beta)
+    L_diss = zeros(C64, d^2, d^2)
+    H_LS = zeros(C64, d, d)
+    bath = (ind_bath == 1) ? m.bath1 : m.bath2
+    site = ind_bath
+    #for (site, bath) in ((1, m.bath1), (2, m.bath2))
+    ops = coupling_ops_by_frequency(m.sys, site)
+    for p in pq, q in pq, sgn_w in (+1, -1), sgn_wp in (+1, -1)
+        w = sgn_w * r
+        wp = sgn_wp * r
+        Ap = ops[(p, sgn_w)]   # c_p[w]
+        Aq = ops[(q, sgn_wp)]  # c_q[w']
+        pref = (p == q) ? -1.0 : 1.0  # (1 - 2δ_pq)
+
+        gamma_w, eta_w = gamma_eta_from_phi(bath, p, q, w)
+        gamma_wp, eta_wp = gamma_eta_from_phi(bath, p, q, wp)
+
+        Gamma = 0.5 * (gamma_w + gamma_wp) - 1im * (eta_w - eta_wp)
+        coeff_ls = 0.5 * (eta_w + eta_wp) + 0.25im * (gamma_w - gamma_wp)
+
+        # dissipator term: Aq ρ Ap† - 1/2 {Ap† Aq, ρ}
+        #L_diss += pref * Gamma *
+        L_diss += -2pref * Gamma *
+                    (spost(Ap', d) * spre(Aq, d) -
+                    0.5 * spre(Ap' * Aq, d) - 0.5 * spost(Ap' * Aq, d))
+
+        # Lamb shift term
+        H_LS += pref * coeff_ls * (Ap' * Aq)
+    end
+    #end
+    c1, c2, cd1, cd2 = fermion_ops_2site()
+    L_diss += 2additional_H * (spost(cd2, d) * spre(c1, d) -
+                    0.5 * spre(cd2 * c1, d) - 0.5 * spost(cd2 * c1, d))
 
     H_LS = 0.5 * (H_LS + H_LS')
     return L_diss, H_LS
@@ -317,6 +399,16 @@ function redfield_liouvillian(m::TwoBathModel)
     return commutator_super(H + H_LS) + L_diss
 end
 
+function redfield_liouvillian_additional(m::TwoBathModel, additional_H::Float64)
+    H = system_hamiltonian(m.sys)
+    d = size(H, 1)
+    L_diss, H_LS = redfield_parts(m)
+    c1, c2, cd1, cd2 = fermion_ops_2site()
+    L_diss += additional_H * (spost(cd2, d) * spre(c1, d) -
+                    spre(cd2 * c1, d) - 0.5 * spost(c1*cd2, d))
+    return commutator_super(H + H_LS) + L_diss
+end
+
 function normalgksl_liouvillian(m::TwoBathModel)
     H = system_hamiltonian(m.sys)
     d = size(H, 1)
@@ -362,36 +454,116 @@ end
 γ-matrix square root (eqs. 84-86, 100) at frequency w.
 """
 function gammahat_sqrt(b::BathSpectrum, w::Float64)
-    sw = b.Sigma(w)
-    #st = conj(b.SigmaTilde(-w))
-    st = b.SigmaTilde(-w)
-
-    gamma = imag(sw + st)     # eq. (82)
-    gamma_p = imag(sw - st)   # eq. (83)
-
-    #gamma_m = gamma + gamma_p
-    #gamma_s = gamma - gamma_p
-
-    g = [gamma 1.0im*gamma_p; -1.0im*gamma_p gamma]
+    gamma = Phi_from_sigma(b, :alpha, :alpha, w) + Phi_from_sigma(b, :alpha, :alpha, w)'  # eq. (72)
+    gamma_p = Phi_from_sigma(b, :alpha, :beta, w) + Phi_from_sigma(b, :beta, :alpha, w)'  # eq. (73)
+    g = C64[gamma gamma_p; gamma_p' gamma]
     eigvals, eigvecs = eigen(Hermitian(g))
     sqrt_eigvals = sqrt.(complex.(eigvals))
     sqrt_g = eigvecs * Diagonal(sqrt_eigvals) * eigvecs'
     return sqrt_g
-
-    #gm = sqrt(complex(gamma_m))
-    #gm = sqrt(gamma_m)
-    #gs = sqrt(complex(gamma_s))
-    #gs = sqrt(gamma_s)
-
-    #return (1 / sqrt(2)) * C64[
-    #    (gm + gs)         im * (gm - gs)
-    #    -im * (gm - gs)   (gm + gs)
-    #]
 end
 
 """
 Nathan-Rudner type GKSL Liouvillian (eqs. 100-109).
 """
+function nr_parts_from_redfield(m::TwoBathModel)
+    H = system_hamiltonian(m.sys)
+    d = size(H, 1)
+    r, _, _ = mixing_angles(m.sys)
+    pq = (:alpha, :beta)
+    L_diss = zeros(C64, d^2, d^2)
+    H_LS = zeros(C64, d, d)
+
+    pidx = Dict(:alpha => 1, :beta => 2)
+
+    for (site, bath) in ((1, m.bath1), (2, m.bath2))
+        ops = coupling_ops_by_frequency(m.sys, site)
+        for sgn_w in (+1, -1), sgn_wp in (+1, -1)
+            w = sgn_w * r
+            wp = sgn_wp * r
+            gamma_sqrt = gammahat_sqrt(bath, w)
+            gamma_sqrt_wp = gammahat_sqrt(bath, wp)
+            Gamma = gamma_sqrt * gamma_sqrt_wp'  # eq. (101)
+            for p in pq, q in pq
+                
+                Ap = ops[(p, sgn_w)]   # c_p[w]
+                Aq = ops[(q, sgn_wp)]  # c_q[w']
+                pref = (p == q) ? -1.0 : 1.0  # -(1 - 2δ_pq)
+
+                gamma_w, eta_w = gamma_eta_from_phi(bath, p, q, w)
+                gamma_wp, eta_wp = gamma_eta_from_phi(bath, p, q, wp)
+
+                
+                #Gamma = 0.5 * (gamma_w + gamma_wp) - 1im * (eta_w - eta_wp)
+                coeff_ls = 0.5 * (eta_w + eta_wp)
+
+                # dissipator term: Aq ρ Ap† - 1/2 {Ap† Aq, ρ}
+                #L_diss += pref * Gamma *
+                L_diss += -2pref * Gamma[pidx[p], pidx[q]] *
+                        (spost(Ap', d) * spre(Aq, d) -
+                        0.5 * spre(Ap' * Aq, d) - 0.5 * spost(Ap' * Aq, d))
+
+                # Lamb shift term
+                H_LS += pref * coeff_ls * (Ap' * Aq)
+            end
+        end
+    end
+
+    H_LS = 0.5 * (H_LS + H_LS')
+    return L_diss, H_LS
+end
+
+function nr_Heff_from_redfield(m::TwoBathModel)
+    H = system_hamiltonian(m.sys)
+    d = size(H, 1)
+    r, _, _ = mixing_angles(m.sys)
+    pq = (:alpha, :beta)
+    L_diss = zeros(C64, d, d)
+    H_LS = zeros(C64, d, d)
+
+    pidx = Dict(:alpha => 1, :beta => 2)
+
+    for (site, bath) in ((1, m.bath1), (2, m.bath2))
+        ops = coupling_ops_by_frequency(m.sys, site)
+        for sgn_w in (+1, -1), sgn_wp in (+1, -1)
+            w = sgn_w * r
+            wp = sgn_wp * r
+            gamma_sqrt = gammahat_sqrt(bath, w)
+            gamma_sqrt_wp = gammahat_sqrt(bath, wp)
+            Gamma = gamma_sqrt * gamma_sqrt_wp'  # eq. (101)
+            for p in pq, q in pq
+                
+                Ap = ops[(p, sgn_w)]   # c_p[w]
+                Aq = ops[(q, sgn_wp)]  # c_q[w']
+                pref = (p == q) ? -1.0 : 1.0  # -(1 - 2δ_pq)
+
+                gamma_w, eta_w = gamma_eta_from_phi(bath, p, q, w)
+                gamma_wp, eta_wp = gamma_eta_from_phi(bath, p, q, wp)
+
+                
+                #Gamma = 0.5 * (gamma_w + gamma_wp) - 1im * (eta_w - eta_wp)
+                coeff_ls = 0.5 * (eta_w + eta_wp)
+
+                # dissipator term: Aq ρ Ap† - 1/2 {Ap† Aq, ρ}
+                #L_diss += pref * Gamma *
+                L_diss += 1.0im * pref * Gamma[pidx[p], pidx[q]] * (Ap' * Aq)
+
+                # Lamb shift term
+                H_LS += pref * coeff_ls * (Ap' * Aq)
+            end
+        end
+    end
+
+    H_LS = 0.5 * (H_LS + H_LS')
+    return H_LS, L_diss
+end
+
+function nr_liouvillian_from_redfield(m::TwoBathModel)
+    H = system_hamiltonian(m.sys)
+    L_diss, H_LS = nr_parts_from_redfield(m)
+    return commutator_super(H + H_LS) + L_diss
+end
+
 function nr_gksl_liouvillian(m::TwoBathModel)
     H = system_hamiltonian(m.sys)
     d = size(H, 1)
@@ -415,7 +587,8 @@ function nr_gksl_liouvillian(m::TwoBathModel)
             gamma_w, eta_w = gamma_eta_from_phi(bath, p, q, w)
             gamma_wp, eta_wp = gamma_eta_from_phi(bath, p, q, wp)
 
-            coeff = 0.5 * (eta_w + eta_wp) + 0.25im * (gamma_w - gamma_wp)
+            #coeff = 0.5 * (eta_w + eta_wp) + 0.25im * (gamma_w - gamma_wp)
+            coeff = 0.5 * (eta_w + eta_wp)
             Hls += pref * coeff * (Ap' * Aq)
         end
         Hls = 0.5 * (Hls + Hls')
@@ -495,7 +668,8 @@ function steady_states(m::TwoBathModel)
     H = system_hamiltonian(m.sys)
     d = size(H, 1)
     Lr = redfield_liouvillian(m)
-    Lg = nr_gksl_liouvillian(m)
+    Lg = nr_liouvillian_from_redfield(m)
+    #Lg = nr_gksl_liouvillian(m)
     return steady_state_from_liouvillian(Lr; d), steady_state_from_liouvillian(Lg; d), H
 end
 
@@ -504,7 +678,18 @@ function steady_states3(m::TwoBathModel)
     d = size(H, 1)
     Lr = redfield_liouvillian(m)
     Lng = normalgksl_liouvillian(m)
-    Lg = nr_gksl_liouvillian(m)
+    #Lg = nr_gksl_liouvillian(m)
+    Lg = nr_liouvillian_from_redfield(m)
+    return steady_state_from_liouvillian(Lr; d), steady_state_from_liouvillian(Lng; d), steady_state_from_liouvillian(Lg; d), H
+end
+
+function steady_states4(m::TwoBathModel, additional_H::Float64)
+    H = system_hamiltonian(m.sys)
+    d = size(H, 1)
+    Lr = redfield_liouvillian_additional(m, additional_H)
+    Lng = normalgksl_liouvillian(m)
+    #Lg = nr_gksl_liouvillian(m)
+    Lg = nr_liouvillian_from_redfield(m)
     return steady_state_from_liouvillian(Lr; d), steady_state_from_liouvillian(Lng; d), steady_state_from_liouvillian(Lg; d), H
 end
 
@@ -672,6 +857,36 @@ function test_gain_loss_zero_equilibrium(;
     return ok, gl_red, gl_gksl
 end
 
+function NR_parts(m::TwoBathModel)
+    H = system_hamiltonian(m.sys)
+    d = size(H, 1)
+    r, _, _ = mixing_angles(m.sys)
+    pq = (:alpha, :beta)
+    H_LS = zeros(C64, d, d)
+
+    for (site, bath) in ((1, m.bath1), (2, m.bath2))
+        ops = coupling_ops_by_frequency(m.sys, site)
+        for p in pq, q in pq, sgn_w in (+1, -1), sgn_wp in (+1, -1)
+            w = sgn_w * r
+            wp = sgn_wp * r
+            Ap = ops[(p, sgn_w)]   # c_p[w]
+            Aq = ops[(q, sgn_wp)]  # c_q[w']
+            pref = (p == q) ? -1.0 : 1.0  # -(1 - 2δ_pq)
+
+            gamma_w, eta_w = gamma_eta_from_phi(bath, p, q, w)
+            gamma_wp, eta_wp = gamma_eta_from_phi(bath, p, q, wp)
+
+            coeff_ls = 0.5 * (eta_w + eta_wp)
+
+            # Lamb shift term
+            H_LS += pref * coeff_ls * (Ap' * Aq)
+        end
+    end
+
+    H_LS = 0.5 * (H_LS + H_LS')
+    return H_LS
+end
+
 function test_current_zero_and_finite2(;
     beta::Float64 = 8.0,
     omega::Float64 = 0.0, 
@@ -734,6 +949,87 @@ function test_current_zero_and_finite2(;
         println("all pass = $(ok)")
     end
     return ok, j_eq, j_bias
+end
+
+function test_current_zero_and_finite3(;
+    beta::Float64 = 8.0,
+    omega::Float64 = 0.0, 
+    Gamma::Float64 = 0.15,
+    tau_c::Float64 = 0.2,
+    mu_eq::Float64 = 0.0,
+    muL_bias::Float64 = 0.6,
+    muR_bias::Float64 = -0.6,
+    zero_tol::Float64 = 1e-10,
+    finite_tol::Float64 = 1e-4,
+    verbose::Bool = true
+)
+    # Case 1: equilibrium (omega=0, muL=muR=0) -> current should vanish.
+    sys_eq = SystemParams(1.0, omega)
+    bathL_eq = make_bath(Gamma = Gamma, mu = mu_eq, beta = beta, tau_c = tau_c)
+    bathR_eq = make_bath(Gamma = Gamma, mu = mu_eq, beta = beta, tau_c = tau_c)
+    model_eq = TwoBathModel(sys_eq, bathL_eq, bathR_eq)
+    rho_red_eq, rho_ngksl_eq, rho_gksl_eq, _ = steady_states3(model_eq)
+    #rho_red_eq, rho_gksl_eq, _ = steady_states(model_eq)
+    L_diss_eq, H_LS_eq = redfield_parts(model_eq)
+    H_LS_nr_eq = NR_parts(model_eq)
+    _, H_LS_gksl_eq = normalgksl_parts(model_eq)
+    j_eq = current_expectation(rho_red_eq, sys_eq, H_LS_eq)
+    #j_eq_ngksl = current_expectation(rho_ngksl_eq, sys_eq, H_LS_gksl_eq)
+    j_eq_ngksl = current_expectation(rho_ngksl_eq, sys_eq, H_LS_gksl_eq)
+    j_eq_gksl = current_expectation(rho_gksl_eq, sys_eq, H_LS_nr_eq)
+    #j_eq_gksl = current_expectation(rho_gksl_eq, sys_eq, H_LS_gksl_eq)
+    #j_eq = current_expectation(rho_red_eq, sys_eq)
+    #j_eq_gksl = current_expectation(rho_gksl_eq, sys_eq)
+    ok_zero = abs(j_eq) < zero_tol
+    ok_zero_gksl = abs(j_eq_gksl) < zero_tol
+
+    # Case 2: biased chemical potentials (Redfield) -> finite current.
+    sys_bias = SystemParams(1.0, omega)
+    bathL_bias = make_bath(Gamma = Gamma, mu = muL_bias, beta = beta, tau_c = tau_c)
+    bathR_bias = make_bath(Gamma = Gamma, mu = muR_bias, beta = beta, tau_c = tau_c)
+    model_bias = TwoBathModel(sys_bias, bathL_bias, bathR_bias)
+    #rho_red_bias, rho_gksl_bias, _ = steady_states(model_bias)
+    rho_red_bias, rho_ngksl_bias, rho_gksl_bias, _ = steady_states3(model_bias)
+    L_diss_bias, H_LS_bias = redfield_parts(model_bias)
+    _, H_LS_gksl_bias = normalgksl_parts(model_bias)
+    H_LS_nr_bias = NR_parts(model_bias)
+
+    j_bias = current_expectation(rho_red_bias, sys_bias, H_LS_bias)
+    j_bias_ngksl = current_expectation(rho_ngksl_bias, sys_bias, H_LS_gksl_bias)
+    j_bias_gksl = current_expectation(rho_gksl_bias, sys_bias, H_LS_nr_bias)
+    #j_bias_gksl = current_expectation(rho_gksl_bias, sys_bias, H_LS_bias)
+    #j_bias_gksl = current_expectation(rho_gksl_bias, sys_bias, H_LS_gksl_bias)
+    #j_bias = current_expectation(rho_red_bias, sys_bias)
+    #j_bias_gksl = current_expectation(rho_gksl_bias, sys_bias)
+    ok_finite = abs(j_bias) > finite_tol
+    ok_finite_gksl = abs(j_bias_gksl) > finite_tol
+
+    ok = ok_zero && ok_finite && ok_zero_gksl
+    if verbose
+        println("Current test with J = i t (c1†c2 - c2†c1)")
+        println("equilibrium case: omega=$(omega), muL=muR=$(mu_eq)")
+        println("  Redfield current = $(j_eq), |J|<$(zero_tol) => $(ok_zero)")
+        println("  Conventional GKSL current = $(j_eq_ngksl), |J|<$(zero_tol) => $(ok_zero_gksl)")
+        println("  NR GKSL current = $(j_eq_gksl), |J|<$(zero_tol) => $(ok_zero_gksl)")
+        println("biased case: omega=0, muL=$(muL_bias), muR=$(muR_bias)")
+        println("  Redfield current = $(j_bias), |J|>$(finite_tol) => $(ok_finite)")
+        println("  Conventional GKSL current = $(j_bias_ngksl), |J|>$(finite_tol) => $(ok_finite_gksl)")
+        println("  NR GKSL current = $(j_bias_gksl), |J|>$(finite_tol) => $(ok_finite_gksl)")
+        println("all pass = $(ok)")
+    end
+    return ok, j_eq, j_bias, j_bias_ngksl, j_bias_gksl
+end
+
+function Heff_projected_val(Heff::Matrix{C64})
+    c1, c2, cd1, cd2 = fermion_ops_2site()
+    ops = Dict("cd1*c1" => cd1*c1, "cd2*c2" => cd2*c2, "cd1*c2" => cd1*c2, "cd2*c1" => cd2*c1, "c1*cd1" => c1*cd1, "c2*cd2" => c2*cd2)
+    results = Dict{String, C64}()
+    for key in keys(ops)
+        op = ops[key]
+        val = sum(op .* Heff)/2
+        results[key] = val
+    end
+    return results
 end
 
 function main()
