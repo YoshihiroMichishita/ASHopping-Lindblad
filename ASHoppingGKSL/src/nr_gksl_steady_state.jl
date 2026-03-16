@@ -588,7 +588,7 @@ end
 """
 Nathan-Rudner type GKSL Liouvillian (eqs. 100-109).
 """
-function nr_parts_from_redfield(m::TwoBathModel)
+function nr_parts_from_redfield(m::TwoBathModel; twist::Bool=false)
     H = system_hamiltonian(m.sys)
     d = size(H, 1)
     r, _, _ = mixing_angles(m.sys)
@@ -597,9 +597,9 @@ function nr_parts_from_redfield(m::TwoBathModel)
     H_LS = zeros(C64, d, d)
 
     pidx = Dict(:alpha => 1, :beta => 2)
-
+    ops = [coupling_ops_by_frequency(m.sys, 1), coupling_ops_by_frequency(m.sys, 2)]
     for (site, bath) in ((1, m.bath1), (2, m.bath2))
-        ops = coupling_ops_by_frequency(m.sys, site)
+        op = coupling_ops_by_frequency(m.sys, site)
         for sgn_w in (+1, -1), sgn_wp in (+1, -1)
             w = sgn_w * r
             wp = sgn_wp * r
@@ -608,8 +608,8 @@ function nr_parts_from_redfield(m::TwoBathModel)
             Gamma = gamma_sqrt * gamma_sqrt_wp'  # eq. (101)
             for p in pq, q in pq
                 
-                Ap = ops[(p, sgn_w)]   # c_p[w]
-                Aq = ops[(q, sgn_wp)]  # c_q[w']
+                Ap = op[(p, sgn_w)]   # c_p[w]
+                Aq = op[(q, sgn_wp)]  # c_q[w']
                 pref = (p == q) ? -1.0 : 1.0  # -(1 - 2δ_pq)
 
                 gamma_w, eta_w = gamma_eta_from_phi(bath, p, q, w)
@@ -623,6 +623,65 @@ function nr_parts_from_redfield(m::TwoBathModel)
                 #L_diss += pref * Gamma *
                 L_diss += -2pref * Gamma[pidx[p], pidx[q]] *
                 #L_diss += 2pref * Gamma[pidx[p], pidx[q]] *
+                        (spost(Ap', d) * spre(Aq, d) -
+                        0.5 * spre(Ap' * Aq, d) - 0.5 * spost(Ap' * Aq, d))
+
+                # Lamb shift term
+                H_LS += pref * coeff_ls * (Ap' * Aq)
+            end
+        end
+    end
+
+    if(twist)
+        #1,2
+        for sgn_w in (+1, -1), sgn_wp in (+1, -1)
+            w = sgn_w * r
+            wp = sgn_wp * r
+            gamma_sqrt = gammahat_sqrt(m.bath1, w)
+            gamma_sqrt_wp = gammahat_sqrt(m.bath2, wp)
+            Gamma = gamma_sqrt * gamma_sqrt_wp'  # eq. (101)
+            for p in pq, q in pq
+                Ap = ops[1][(p, sgn_w)]   # c_p[w]
+                Aq = ops[2][(q, sgn_wp)]  # c_q[w']
+                pref = (p == q) ? -1.0 : 1.0  # -(1 - 2δ_pq)
+
+                gamma_w, eta_w = gamma_eta_from_phi(m.bath1, p, q, w)
+                gamma_wp, eta_wp = gamma_eta_from_phi(m.bath2, p, q, wp)
+                #gamma_w, eta_w = gamma_eta_from_phi(m.bath2, p, q, w)
+                #gamma_wp, eta_wp = gamma_eta_from_phi(m.bath1, p, q, wp)
+
+                #Gamma = 0.5 * (gamma_w + gamma_wp) - 1im * (eta_w - eta_wp)
+                coeff_ls = 0.5 * (eta_w + eta_wp)
+
+                # dissipator term: Aq ρ Ap† - 1/2 {Ap† Aq, ρ}
+                #L_diss += pref * Gamma *
+                L_diss += -2pref * Gamma[pidx[p], pidx[q]] *
+                        (spost(Ap', d) * spre(Aq, d) -
+                        0.5 * spre(Ap' * Aq, d) - 0.5 * spost(Ap' * Aq, d))
+
+                # Lamb shift term
+                H_LS += pref * coeff_ls * (Ap' * Aq)
+            end
+            #2,1
+            gamma_sqrt = gammahat_sqrt(m.bath2, w)
+            gamma_sqrt_wp = gammahat_sqrt(m.bath1, wp)
+            Gamma = gamma_sqrt * gamma_sqrt_wp'  # eq. (101)
+            for p in pq, q in pq
+                Ap = ops[2][(p, sgn_w)]   # c_p[w]
+                Aq = ops[1][(q, sgn_wp)]  # c_q[w']
+                pref = (p == q) ? -1.0 : 1.0  # -(1 - 2δ_pq)
+
+                gamma_w, eta_w = gamma_eta_from_phi(m.bath2, p, q, w)
+                gamma_wp, eta_wp = gamma_eta_from_phi(m.bath1, p, q, wp)
+                #gamma_w, eta_w = gamma_eta_from_phi(m.bath1, p, q, w)
+                #gamma_wp, eta_wp = gamma_eta_from_phi(m.bath2, p, q, wp)
+
+                #Gamma = 0.5 * (gamma_w + gamma_wp) - 1im * (eta_w - eta_wp)
+                coeff_ls = 0.5 * (eta_w + eta_wp)
+
+                # dissipator term: Aq ρ Ap† - 1/2 {Ap† Aq, ρ}
+                #L_diss += pref * Gamma *
+                L_diss += -2pref * Gamma[pidx[p], pidx[q]] *
                         (spost(Ap', d) * spre(Aq, d) -
                         0.5 * spre(Ap' * Aq, d) - 0.5 * spost(Ap' * Aq, d))
 
@@ -681,9 +740,9 @@ function nr_Heff_from_redfield(m::TwoBathModel)
     return H_LS, L_diss
 end
 
-function nr_liouvillian_from_redfield(m::TwoBathModel)
+function nr_liouvillian_from_redfield(m::TwoBathModel; twist::Bool=false)
     H = system_hamiltonian(m.sys)
-    L_diss, H_LS = nr_parts_from_redfield(m)
+    L_diss, H_LS = nr_parts_from_redfield(m, twist=twist)
     return commutator_super(H + H_LS) + L_diss
 end
 
@@ -791,7 +850,7 @@ function steady_states(m::TwoBathModel; twist::Bool=false)
     H = system_hamiltonian(m.sys)
     d = size(H, 1)
     Lr = redfield_liouvillian(m; twist=twist)
-    Lg = nr_liouvillian_from_redfield(m)
+    Lg = nr_liouvillian_from_redfield(m; twist=twist)
     #Lg = nr_gksl_liouvillian(m)
     return steady_state_from_liouvillian(Lr; d), steady_state_from_liouvillian(Lg; d), H
 end
@@ -802,7 +861,7 @@ function steady_states3(m::TwoBathModel; twist::Bool=false)
     Lr = redfield_liouvillian(m; twist=twist)
     Lng = normalgksl_liouvillian(m)
     #Lg = nr_gksl_liouvillian(m)
-    Lg = nr_liouvillian_from_redfield(m)
+    Lg = nr_liouvillian_from_redfield(m; twist=twist)
     return steady_state_from_liouvillian(Lr; d), steady_state_from_liouvillian(Lng; d), steady_state_from_liouvillian(Lg; d), H
 end
 
@@ -1031,7 +1090,7 @@ function test_current_zero_and_finite2(;
     bathL_eq = make_bath2(Gamma = Gamma, mu = mu_eq, beta = beta, tau_c = tau_c)
     bathR_eq = make_bath2(Gamma = Gamma, mu = mu_eq, beta = beta, tau_c = tau_c)
     model_eq = TwoBathModel(sys_eq, bathL_eq, bathR_eq)
-    rho_red_eq, rho_ngksl_eq, rho_gksl_eq, _ = steady_states3(model_eq)
+    rho_red_eq, rho_ngksl_eq, rho_gksl_eq, _ = steady_states3(model_eq; twist=twist)
     #rho_red_eq, rho_gksl_eq, _ = steady_states(model_eq)
     L_diss_eq, H_LS_eq = redfield_parts(model_eq; twist=twist)
     _, H_LS_gksl_eq = normalgksl_parts(model_eq)
@@ -1050,7 +1109,7 @@ function test_current_zero_and_finite2(;
     bathR_bias = make_bath(Gamma = Gamma, mu = muR_bias, beta = beta, tau_c = tau_c)
     model_bias = TwoBathModel(sys_bias, bathL_bias, bathR_bias)
     #rho_red_bias, rho_gksl_bias, _ = steady_states(model_bias)
-    rho_red_bias, rho_ngksl_bias, rho_gksl_bias, _ = steady_states3(model_bias)
+    rho_red_bias, rho_ngksl_bias, rho_gksl_bias, _ = steady_states3(model_bias; twist=twist)
     L_diss_bias, H_LS_bias = redfield_parts(model_bias; twist=twist)
     _, H_LS_gksl_bias = normalgksl_parts(model_bias)
     j_bias = current_expectation(rho_red_bias, sys_bias, H_LS_bias)
