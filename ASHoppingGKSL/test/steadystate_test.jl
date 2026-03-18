@@ -7,8 +7,8 @@ import ASHoppingGKSL as gksl
     t = 1.0
     ω = 0.0
     β = 8.0
-    #Γ = 1.0
-    Γ = 0.02
+    Γ = 1.0
+    #Γ = 0.02
     τc = 0.2
     tol = 1e-8
 
