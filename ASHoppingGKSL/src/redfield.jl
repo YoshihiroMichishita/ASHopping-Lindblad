@@ -1,5 +1,5 @@
-include("ops_space.jl")
-include("bath.jl")
+#include("ops_space.jl")
+#include("bath.jl")
 
 """
 Bath correlation Φ_pq(ω) from eqs. (72)-(73).
@@ -86,13 +86,14 @@ function redfield_parts_old(m::TwoBathModel)
             coeff_ls = 0.5 * (eta_w + eta_wp) + 0.25im * (gamma_w - gamma_wp)
 
             # dissipator term: Aq ρ Ap† - 1/2 {Ap† Aq, ρ}
-            #L_diss += pref * Gamma *
-            L_diss += -2pref * Gamma *
+            L_diss += 2pref * Gamma *
+            #L_diss += -2pref * Gamma *
                     (spost(Ap', d) * spre(Aq, d) -
                        0.5 * spre(Ap' * Aq, d) - 0.5 * spost(Ap' * Aq, d))
 
             # Lamb shift term
-            H_LS += pref * coeff_ls * (Ap' * Aq)
+            #H_LS += pref * coeff_ls * (Ap' * Aq)
+            H_LS += -pref * coeff_ls * (Ap' * Aq)
         end
     end
 
@@ -126,13 +127,14 @@ function redfield_parts(m::TwoBathModel)
             coeff_ls = 0.5 * (eta_w + eta_wp) + 0.25im * (gamma_w - gamma_wp)
 
             # dissipator term: Aq ρ Ap† - 1/2 {Ap† Aq, ρ}
-            #L_diss += pref * Gamma *
-            L_diss += -2pref * Gamma *
+            L_diss += 2pref * Gamma *
+            #L_diss += -2pref * Gamma *
                     (spost(Ap', d) * spre(Aq, d) -
                        0.5 * spre(Ap' * Aq, d) - 0.5 * spost(Ap' * Aq, d))
 
             # Lamb shift term
-            H_LS += pref * coeff_ls * (Ap' * Aq)
+            #H_LS += pref * coeff_ls * (Ap' * Aq)
+            H_LS += -pref * coeff_ls * (Ap' * Aq)
         end
     end
 
@@ -354,3 +356,115 @@ function redfield_parts_TwistedBoundary(m::TwoBathModel, t::Float64)
     H_LS = 0.5 * (H_LS + H_LS')
     return L_diss, H_LS
 end
+
+function normalgksl_parts(m::TwoBathModel)
+    H = system_hamiltonian(m.sys)
+    d = size(H, 1)
+    r, _, _ = mixing_angles(m.sys)
+    pq = (:alpha, :beta)
+    L_diss = zeros(C64, d^2, d^2)
+    H_LS = zeros(C64, d, d)
+
+    for (site, bath) in ((1, m.bath1), (2, m.bath2))
+        ops = coupling_ops_by_frequency(m.sys, site)
+        for p in pq, q in pq, sgn_w in (+1, -1)#, sgn_wp in (+1, -1)
+            sgn_wp = sgn_w
+            w = sgn_w * r
+            wp = sgn_wp * r
+            Ap = ops[(p, sgn_w)]   # c_p[w]
+            Aq = ops[(q, sgn_wp)]  # c_q[w']
+            pref = (p == q) ? -1.0 : 1.0  # (1 - 2δ_pq)
+
+            gamma_w, eta_w = gamma_eta_from_phi(bath, p, q, w)
+            gamma_wp, eta_wp = gamma_eta_from_phi(bath, p, q, wp)
+
+            Gamma = 0.5 * (gamma_w + gamma_wp) - 1im * (eta_w - eta_wp)
+            coeff_ls = 0.5 * (eta_w + eta_wp) + 0.25im * (gamma_w - gamma_wp)
+
+            # dissipator term: Aq ρ Ap† - 1/2 {Ap† Aq, ρ}
+            #L_diss += pref * Gamma *
+            L_diss += 2pref * Gamma *
+                    (spost(Ap', d) * spre(Aq, d) -
+                       0.5 * spre(Ap' * Aq, d) - 0.5 * spost(Ap' * Aq, d))
+
+            # Lamb shift term
+            H_LS += pref * coeff_ls * (Ap' * Aq)
+        end
+    end
+
+    H_LS = 0.5 * (H_LS + H_LS')
+    return L_diss, H_LS
+end
+
+function normalgksl_parts(m::TwoBathModel, ind_bath::Int)
+    H = system_hamiltonian(m.sys)
+    d = size(H, 1)
+    r, _, _ = mixing_angles(m.sys)
+    pq = (:alpha, :beta)
+    L_diss = zeros(C64, d^2, d^2)
+    H_LS = zeros(C64, d, d)
+
+    bath = (ind_bath == 1) ? m.bath1 : m.bath2
+    site = ind_bath
+    ops = coupling_ops_by_frequency(m.sys, site)
+    for p in pq, q in pq, sgn_w in (+1, -1)#, sgn_wp in (+1, -1)
+        sgn_wp = sgn_w
+        w = sgn_w * r
+        wp = sgn_wp * r
+        Ap = ops[(p, sgn_w)]   # c_p[w]
+        Aq = ops[(q, sgn_wp)]  # c_q[w']
+        pref = (p == q) ? -1.0 : 1.0  # (1 - 2δ_pq)
+
+        gamma_w, eta_w = gamma_eta_from_phi(bath, p, q, w)
+        gamma_wp, eta_wp = gamma_eta_from_phi(bath, p, q, wp)
+
+        Gamma = 0.5 * (gamma_w + gamma_wp) - 1im * (eta_w - eta_wp)
+        coeff_ls = 0.5 * (eta_w + eta_wp) + 0.25im * (gamma_w - gamma_wp)
+
+        # dissipator term: Aq ρ Ap† - 1/2 {Ap† Aq, ρ}
+        #L_diss += pref * Gamma *
+        L_diss += -2pref * Gamma *
+                (spost(Ap', d) * spre(Aq, d) -
+                    0.5 * spre(Ap' * Aq, d) - 0.5 * spost(Ap' * Aq, d))
+
+        # Lamb shift term
+        H_LS += pref * coeff_ls * (Ap' * Aq)
+    end
+
+    H_LS = 0.5 * (H_LS + H_LS')
+    return L_diss, H_LS
+end
+
+"""
+Redfield Liouvillian (eq. 95) for the two-bath model.
+"""
+function redfield_liouvillian(m::TwoBathModel)
+    H = system_hamiltonian(m.sys)
+    d = size(H, 1)
+    L_diss, H_LS = redfield_parts(m)
+    return commutator_super(H + H_LS) + L_diss
+end
+
+"""
+Redfield Liouvillian (eq. 95) for the two-bath model.
+"""
+function redfield_liouvillian_TwistedBoundary(m::TwoBathModel, ts::Vector{Float64} = collect(0.0:0.02:2.0))
+    H = system_hamiltonian(m.sys)
+    #ts = collect(0.0:0.02:2.0)  # Example time points for the twist
+    L_diss = []
+    H_LS = []
+    for t in ts
+        L_diss_t, H_LS_t = redfield_parts_TwistedBoundary(m, t)
+        push!(L_diss, L_diss_t)
+        push!(H_LS, H_LS_t)
+    end
+    return H_LS, L_diss
+end
+
+function normalgksl_liouvillian(m::TwoBathModel)
+    H = system_hamiltonian(m.sys)
+    d = size(H, 1)
+    L_diss, H_LS = normalgksl_parts(m)
+    return commutator_super(H + H_LS) + L_diss
+end
+
