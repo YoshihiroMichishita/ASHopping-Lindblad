@@ -59,10 +59,17 @@ function redfield_gain_loss(m::TwoBathModel, bathind::Int, rho::Matrix{C64})
         for site in (1, 2)
             loss_op = loss_ops[site]
             gain_op = gain_ops[site]
+            n_op = gain_op * loss_op
+            nbar_op = loss_op * gain_op
+            Aq_gain = n_op * Aq * nbar_op
+            Ap_gain = n_op * Ap * nbar_op
+            Aq_loss = nbar_op * Aq * n_op
+            Ap_loss = nbar_op * Ap * n_op
+            #=
             Aq_gain = Aq .* abs.(gain_op)
             Ap_gain = Ap .* abs.(gain_op)
             Aq_loss = Aq .* abs.(loss_op)
-            Ap_loss = Ap .* abs.(loss_op)
+            Ap_loss = Ap .* abs.(loss_op)=#
             Gain_site[site] += 2real(pref * Gamma * tr(Aq_gain * rho * Ap_gain'))
             Loss_site[site] += 2real(pref * Gamma * tr(Aq_loss * rho * Ap_loss'))
         end
@@ -70,21 +77,104 @@ function redfield_gain_loss(m::TwoBathModel, bathind::Int, rho::Matrix{C64})
     return Gain_site, Loss_site
 end
 
-function site_gain_loss_bath(m::TwoBathModel, rho::Matrix{C64}; method::Symbol = :gksl)
+function redfield_TB_net(m::TwoBathModel, rho::Matrix{C64}; scale::Float64=1.0)
+    H = system_hamiltonian(m.sys)
+    d = size(H, 1)
+    r, _, _ = mixing_angles(m.sys)
+    pq = (:alpha, :beta)
+    net_site = [0.0, 0.0]
+    #Gain_site = [0.0, 0.0]
+
+    c1, c2, cd1, cd2 = fermion_ops_2site()
+    loss_ops = Dict(1 => c1, 2 => c2)
+    gain_ops = Dict(1 => cd1, 2 => cd2)
+
+    #mybath = (bathind == 1) ? m.bath1 : m.bath2
+    ops = [coupling_ops_by_frequency(m.sys, 1), coupling_ops_by_frequency(m.sys, 2)]
+
+    L_diss_TB, H_LS_TB = redfield_parts_TwistedBoundary(m; scale=scale)
+    for site in (1, 2)
+        loss_op = loss_ops[site]
+        gain_op = gain_ops[site]
+        n_op = gain_op * loss_op
+        net_site[site] += real(tr(n_op * reshape(L_diss_TB * vec(rho), d, d))) # TB dissipator contribution to net gain-loss
+    end
+    #ops = coupling_ops_by_frequency(m.sys, bathind)
+    #=
+    for p in pq, q in pq, sgn_w in (+1, -1), sgn_wp in (+1, -1)
+        w = sgn_w * r
+        wp = sgn_wp * r
+        Ap = ops[2][(p, sgn_w)]   # c_p[w]
+        Aq = ops[1][(q, sgn_wp)]   # c_q[w']
+        pref = (p == q) ? 1.0 : -1.0  # -(1 - 2δ_pq)
+
+        gamma_w, eta_w = gamma_eta_from_phi_TwistedBoundary(m.bath2, m.bath1, q, p, w)
+        gamma_wp, eta_wp = gamma_eta_from_phi_TwistedBoundary(m.bath1, m.bath2, p, q, wp)
+
+        Gamma = 0.5 * (gamma_w + gamma_wp) - 1im * (eta_w - eta_wp)
+
+        # dissipator term: Aq ρ Ap† - 1/2 {Ap† Aq, ρ}
+        for site in (1, 2)
+            loss_op = loss_ops[site]
+            gain_op = gain_ops[site]
+            n_op = gain_op * loss_op
+            nbar_op = loss_op * gain_op
+            Aq_gain = n_op * Aq * nbar_op
+            Ap_gain = n_op * Ap * nbar_op
+            Aq_loss = nbar_op * Aq * n_op
+            Ap_loss = nbar_op * Ap * n_op
+
+            Gain_site[site] += 2scale*real(pref * Gamma * tr(Aq_gain * rho * Ap_gain'))
+            Loss_site[site] += 2scale*real(pref * Gamma * tr(Aq_loss * rho * Ap_loss'))
+        end
+
+        Ap = ops[1][(p, sgn_w)]   # c_p[w]
+        Aq = ops[2][(q, sgn_wp)]   # c_q[w']
+        pref = (p == q) ? 1.0 : -1.0  # -(1 - 2δ_pq)
+
+        gamma_w, eta_w = gamma_eta_from_phi_TwistedBoundary(m.bath1, m.bath2, q, p, w)
+        gamma_wp, eta_wp = gamma_eta_from_phi_TwistedBoundary(m.bath2, m.bath1, p, q, wp)
+
+        Gamma = 0.5 * (gamma_w + gamma_wp) - 1im * (eta_w - eta_wp)
+
+        # dissipator term: Aq ρ Ap† - 1/2 {Ap† Aq, ρ}
+        for site in (1, 2)
+            loss_op = loss_ops[site]
+            gain_op = gain_ops[site]
+            n_op = gain_op * loss_op
+            nbar_op = loss_op * gain_op
+            Aq_gain = n_op * Aq * nbar_op
+            Ap_gain = n_op * Ap * nbar_op
+            Aq_loss = nbar_op * Aq * n_op
+            Ap_loss = nbar_op * Ap * n_op
+            
+            Gain_site[site] += 2scale*real(pref * Gamma * tr(Aq_gain * rho * Ap_gain'))
+            Loss_site[site] += 2scale*real(pref * Gamma * tr(Aq_loss * rho * Ap_loss'))
+        end
+    end=#
+    #return Gain_site, Loss_site
+    return net_site
+end
+
+function site_gain_loss_bath(m::TwoBathModel, rho::Matrix{C64}; method::Symbol = :gksl, scale::Float64 = 1.0)
     c1, c2, cd1, cd2 = fermion_ops_2site()
     loss_ops = Dict(1 => c1, 2 => c2)
     gain_ops = Dict(1 => cd1, 2 => cd2)
     results = Dict{Tuple{Int, Int}, Tuple{Float64, Float64, Float64}}()
 
     # Nathan--Rudner GKSL: sum over jumps for each site and bath
-    if method == :gksl
+    if method == :nr
         jumps_by_site = nr_jumps_by_site(m)
         for bath in (1, 2), site in (1, 2)
             gain = 0.0
             loss = 0.0
+            loss_op = loss_ops[site]
+            gain_op = gain_ops[site]
+            n_op = gain_op * loss_op
+            nbar_op = loss_op * gain_op
             for J in jumps_by_site[bath]
-                loss_J = J .* abs.(loss_ops[site])
-                gain_J = J .* abs.(gain_ops[site])
+                loss_J = nbar_op * J * n_op
+                gain_J = n_op * J * nbar_op
                 gain += 2real(tr(gain_J * rho * gain_J'))
                 loss += 2real(tr(loss_J * rho * loss_J'))
             end
@@ -97,6 +187,20 @@ function site_gain_loss_bath(m::TwoBathModel, rho::Matrix{C64}; method::Symbol =
             for site in (1, 2)
                 results[(bath, site)] = (gain_site[site], loss_site[site], gain_site[site] - loss_site[site])
             end
+        end
+        return results
+    elseif method == :redfield_tbc
+        for bath in (1, 2)
+            gain_site, loss_site = redfield_gain_loss(m, bath, rho)
+            
+            for site in (1, 2)
+                results[(bath, site)] = (gain_site[site], loss_site[site], (gain_site[site]) - (loss_site[site]))
+            end
+        end
+        net_tb_site = redfield_TB_net(m, rho; scale=scale)
+        for site in (1, 2)
+            net_site = results[(1, site)][3] + net_tb_site[site]
+            results[(1, site)] = (results[(1, site)][1], results[(1, site)][2], net_site)
         end
         return results
     else

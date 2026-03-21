@@ -91,44 +91,6 @@ end
 Redfield Liouvillian pieces (eq. 95): dissipator superoperator and Lamb shift H_LS.
 Returns (L_diss, H_LS).
 """
-function redfield_parts_old(m::TwoBathModel)
-    H = system_hamiltonian(m.sys)
-    d = size(H, 1)
-    r, _, _ = mixing_angles(m.sys)
-    pq = (:alpha, :beta)
-    L_diss = zeros(C64, d^2, d^2)
-    H_LS = zeros(C64, d, d)
-
-    for (site, bath) in ((1, m.bath1), (2, m.bath2))
-        ops = coupling_ops_by_frequency(m.sys, site)
-        for p in pq, q in pq, sgn_w in (+1, -1), sgn_wp in (+1, -1)
-            w = sgn_w * r
-            wp = sgn_wp * r
-            Ap = ops[(p, sgn_w)]   # c_p[w]
-            Aq = ops[(q, sgn_wp)]  # c_q[w']
-            pref = (p == q) ? -1.0 : 1.0  # -(1 - 2δ_pq)
-
-            gamma_w, eta_w = gamma_eta_from_phi(bath, p, q, w)
-            gamma_wp, eta_wp = gamma_eta_from_phi(bath, p, q, wp)
-
-            Gamma = 0.5 * (gamma_w + gamma_wp) - 1im * (eta_w - eta_wp)
-            coeff_ls = 0.5 * (eta_w + eta_wp) + 0.25im * (gamma_w - gamma_wp)
-
-            # dissipator term: Aq ρ Ap† - 1/2 {Ap† Aq, ρ}
-            L_diss += 2pref * Gamma *
-            #L_diss += -2pref * Gamma *
-                    (spost(Ap', d) * spre(Aq, d) -
-                       0.5 * spre(Ap' * Aq, d) - 0.5 * spost(Ap' * Aq, d))
-
-            # Lamb shift term
-            #H_LS += pref * coeff_ls * (Ap' * Aq)
-            H_LS += -pref * coeff_ls * (Ap' * Aq)
-        end
-    end
-
-    H_LS = 0.5 * (H_LS + H_LS')
-    return L_diss, H_LS
-end
 
 function redfield_parts(m::TwoBathModel)
     H = system_hamiltonian(m.sys)
@@ -147,7 +109,7 @@ function redfield_parts(m::TwoBathModel)
             wp = sgn_wp * r
             Ap = ops[site][(p, sgn_w)]   # c_p[w]
             Aq = ops[site][(q, sgn_wp)]  # c_q[w']
-            pref = (p == q) ? -1.0 : 1.0  # -(1 - 2δ_pq)
+            pref = (p == q) ? -1.0 : 1.0  # (1 - 2δ_pq)
 
             gamma_w, eta_w = gamma_eta_from_phi(bath, p, q, w)
             gamma_wp, eta_wp = gamma_eta_from_phi(bath, p, q, wp)
@@ -156,14 +118,13 @@ function redfield_parts(m::TwoBathModel)
             coeff_ls = 0.5 * (eta_w + eta_wp) + 0.25im * (gamma_w - gamma_wp)
 
             # dissipator term: Aq ρ Ap† - 1/2 {Ap† Aq, ρ}
-            L_diss += 2pref * Gamma *
-            #L_diss += -2pref * Gamma *
+            L_diss += -2pref * Gamma *
                     (spost(Ap', d) * spre(Aq, d) -
                        0.5 * spre(Ap' * Aq, d) - 0.5 * spost(Ap' * Aq, d))
 
             # Lamb shift term
-            #H_LS += pref * coeff_ls * (Ap' * Aq)
-            H_LS += -pref * coeff_ls * (Ap' * Aq)
+            H_LS += pref * coeff_ls * (Ap' * Aq)
+            #H_LS += -pref * coeff_ls * (Ap' * Aq)
         end
     end
 
@@ -196,14 +157,13 @@ function redfield_Heff(m::TwoBathModel)
             coeff_ls = 0.5 * (eta_w + eta_wp) + 0.25im * (gamma_w - gamma_wp)
 
             # dissipator term: Aq ρ Ap† - 1/2 {Ap† Aq, ρ}
-            #L_diss += pref * Gamma *
             L_diss += -2pref * Gamma *
                     (spost(Ap', d) * spre(Aq, d) -
                        0.5 * spre(Ap' * Aq, d) - 0.5 * spost(Ap' * Aq, d))
 
             # Lamb shift term
             H_LS += pref * coeff_ls  * (Ap' * Aq)
-            H_g += pref * 1.0im*Gamma * (Ap' * Aq)
+            H_g += -pref * 1.0im*Gamma * (Ap' * Aq)
         end
     end
 
@@ -241,14 +201,12 @@ function redfield_parts(m::TwoBathModel, ind_bath::Int)
 
         # dissipator term: Aq ρ Ap† - 1/2 {Ap† Aq, ρ}
         #L_diss += pref * Gamma *
-        #L_diss += -2pref * Gamma *
-        L_diss += 2pref * Gamma *
+        L_diss += -2pref * Gamma *
                     (spost(Ap', d) * spre(Aq, d) -
                     0.5 * spre(Ap' * Aq, d) - 0.5 * spost(Ap' * Aq, d))
 
         # Lamb shift term
-        #H_LS += pref * coeff_ls * (Ap' * Aq)
-        H_LS += -pref * coeff_ls * (Ap' * Aq)
+        H_LS += pref * coeff_ls * (Ap' * Aq)
     end
 
     H_LS = 0.5 * (H_LS + H_LS')
@@ -281,13 +239,12 @@ function redfield_parts_TwistedBoundary(m::TwoBathModel, t::Float64)
         coeff_ls = 0.5 * (eta_w + eta_wp) + 0.25im * (gamma_w - gamma_wp)
 
         # dissipator term: Aq ρ Ap† - 1/2 {Ap† Aq, ρ}
-        #L_diss += pref * Gamma *
-        L_diss += 2pref * Gamma *
+        L_diss += -2pref * Gamma *
                 (spost(Ap', d) * spre(Aq, d) -
                     0.5 * spre(Ap' * Aq, d) - 0.5 * spost(Ap' * Aq, d))
 
         # Lamb shift term
-        H_LS += -pref * coeff_ls * (Ap' * Aq)
+        H_LS += pref * coeff_ls * (Ap' * Aq)
     end
     #2,1
     for p in pq, q in pq, sgn_w in (+1, -1), sgn_wp in (+1, -1)
@@ -304,13 +261,12 @@ function redfield_parts_TwistedBoundary(m::TwoBathModel, t::Float64)
         coeff_ls = 0.5 * (eta_w + eta_wp) + 0.25im * (gamma_w - gamma_wp)
 
         # dissipator term: Aq ρ Ap† - 1/2 {Ap† Aq, ρ}
-        #L_diss += pref * Gamma *
-        L_diss += 2pref * Gamma *
+        L_diss += -2pref * Gamma *
                 (spost(Ap', d) * spre(Aq, d) -
                     0.5 * spre(Ap' * Aq, d) - 0.5 * spost(Ap' * Aq, d))
 
         # Lamb shift term
-        H_LS += -pref * coeff_ls * (Ap' * Aq)
+        H_LS += pref * coeff_ls * (Ap' * Aq)
     end
 
     H_LS = 0.5 * (H_LS + H_LS')
@@ -318,7 +274,7 @@ function redfield_parts_TwistedBoundary(m::TwoBathModel, t::Float64)
 end
 
 
-function redfield_parts_TwistedBoundary(m::TwoBathModel)
+function redfield_parts_TwistedBoundary(m::TwoBathModel; scale::Float64=1.0)
     H = system_hamiltonian(m.sys)
     d = size(H, 1)
     r, _, _ = mixing_angles(m.sys)
@@ -348,13 +304,13 @@ function redfield_parts_TwistedBoundary(m::TwoBathModel)
         coeff_ls = 0.5 * (eta_w' + eta_wp) + 0.25im * (gamma_w' - gamma_wp)
 
         # dissipator term: Aq ρ Ap† - 1/2 {Ap† Aq, ρ}
-        #L_diss += pref * Gamma *
-        L_diss += 2pref * Gamma *
+        L_diss += -2pref * Gamma *
                 (spost(Ap', d) * spre(Aq, d) -
                     0.5 * spre(Ap' * Aq, d) - 0.5 * spost(Ap' * Aq, d))
 
         # Lamb shift term
-        H_LS += -pref * coeff_ls * (Ap' * Aq)
+        #H_LS += -pref * coeff_ls * (Ap' * Aq)
+        H_LS += pref * coeff_ls * (Ap' * Aq)
     end
     #2,1
     for p in pq, q in pq, sgn_w in (+1, -1), sgn_wp in (+1, -1)
@@ -375,17 +331,17 @@ function redfield_parts_TwistedBoundary(m::TwoBathModel)
         coeff_ls = 0.5 * (eta_w' + eta_wp) + 0.25im * (gamma_w' - gamma_wp)
 
         # dissipator term: Aq ρ Ap† - 1/2 {Ap† Aq, ρ}
-        #L_diss += pref * Gamma *
-        L_diss += 2pref * Gamma *
+        L_diss += -2pref * Gamma *
                 (spost(Ap', d) * spre(Aq, d) -
                     0.5 * spre(Ap' * Aq, d) - 0.5 * spost(Ap' * Aq, d))
 
         # Lamb shift term
-        H_LS += -pref * coeff_ls * (Ap' * Aq)
+        #H_LS += -pref * coeff_ls * (Ap' * Aq)
+        H_LS += pref * coeff_ls * (Ap' * Aq)
     end
 
     H_LS = 0.5 * (H_LS + H_LS')
-    return L_diss, H_LS
+    return scale * L_diss, scale * H_LS
 end
 
 function normalgksl_parts(m::TwoBathModel)
@@ -413,14 +369,12 @@ function normalgksl_parts(m::TwoBathModel)
             coeff_ls = 0.5 * (eta_w + eta_wp) + 0.25im * (gamma_w - gamma_wp)
 
             # dissipator term: Aq ρ Ap† - 1/2 {Ap† Aq, ρ}
-            #L_diss += pref * Gamma *
-            L_diss += 2pref * Gamma *
+            L_diss += -2pref * Gamma *
                     (spost(Ap', d) * spre(Aq, d) -
                        0.5 * spre(Ap' * Aq, d) - 0.5 * spost(Ap' * Aq, d))
 
             # Lamb shift term
-            #H_LS += pref * coeff_ls * (Ap' * Aq)
-            H_LS += -pref * coeff_ls * (Ap' * Aq)
+            H_LS += pref * coeff_ls * (Ap' * Aq)
         end
     end
 
@@ -454,14 +408,12 @@ function normalgksl_parts(m::TwoBathModel, ind_bath::Int)
         coeff_ls = 0.5 * (eta_w + eta_wp) + 0.25im * (gamma_w - gamma_wp)
 
         # dissipator term: Aq ρ Ap† - 1/2 {Ap† Aq, ρ}
-        L_diss += 2pref * Gamma *
-        #L_diss += -2pref * Gamma *
+        L_diss += -2pref * Gamma *
                 (spost(Ap', d) * spre(Aq, d) -
                     0.5 * spre(Ap' * Aq, d) - 0.5 * spost(Ap' * Aq, d))
 
         # Lamb shift term
-        #H_LS += pref * coeff_ls * (Ap' * Aq)
-        H_LS += -pref * coeff_ls * (Ap' * Aq)
+        H_LS += pref * coeff_ls * (Ap' * Aq)
     end
 
     H_LS = 0.5 * (H_LS + H_LS')

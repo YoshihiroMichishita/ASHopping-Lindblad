@@ -310,13 +310,13 @@ Redfield方程式の標準的な形式で量子マスター方程式を書き直
 まずこの表式におけるRedfield方程式は
 \begin{align}
     \frac{d}{dt}\rho^I_S(t) &= -\int_0^\infty \mr{d}(t-s) [\m{H}^I_V(t),[\m{H}^I_V(s), \rho^I(t)]]\\
-    &= -\int_0^\infty \mr{d}(t-s)\sum_{pq = \alpha\beta}(1-2\delta_{pq})\Biggl[\Phi_{pq}(t-s)[c^I_{p}(t), c^I_q(s)\rho^I_S(t)] - \Phi^*_{pq}(t-s)[c^I_{p}(t), \rho^I_S(t)c^I_q(s)]\Biggr]\\
-    &= -\int_0^\infty \mr{d}\tau\sum_{pq = \alpha\beta}(1-2\delta_{pq})\sum_{\omega, \omega'}\Biggl[\Phi_{pq}(\tau)e^{i\omega'\tau}e^{-i(\omega-\omega')t}[c^\da_{p}[\omega], c_q[\omega']\rho^I_S(t)]\nonumber\\
+    &= -\int_0^\infty \mr{d}(t-s)\sum_{pq = \alpha\beta}(2\delta_{pq}-1)\Biggl[\Phi_{pq}(t-s)[c^I_{p}(t), c^I_q(s)\rho^I_S(t)] - \Phi^*_{pq}(t-s)[c^I_{p}(t), \rho^I_S(t)c^I_q(s)]\Biggr]\\
+    &= -\int_0^\infty \mr{d}\tau\sum_{pq = \alpha\beta}(2\delta_{pq}-1)\sum_{\omega, \omega'}\Biggl[\Phi_{pq}(\tau)e^{i\omega'\tau}e^{-i(\omega-\omega')t}[c^\da_{p}[\omega], c_q[\omega']\rho^I_S(t)]\nonumber\\
     & \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ - \Phi^*_{qp}(\tau)e^{-i\omega\tau}e^{i(\omega-\omega')t}[c_{q}[\omega'], \rho^I_S(t)c^\da_p[\omega]]\Biggr]
 \end{align}
 \begin{align}
-    \Rightarrow \frac{d}{dt}\rho_S(t) &= -i[\m{H}, \rho_S(t)] - \sum_{pq = \alpha\beta}(1-2\delta_{pq})\sum_{\omega, \omega'}\Biggl[\Phi_{pq}(\omega')[c^\da_{p}[\omega], c_q[\omega']\rho_S(t)] - \Phi^*_{qp}(\omega)[c_{q}[\omega'], \rho_S(t)c^\da_p[\omega]]\Biggr]\\
-    &= -i[\m{H}+\m{H}_{\mr{LS}}, \rho_S(t)] - \sum_{pq = \alpha\beta}(1-2\delta_{pq})\sum_{\omega, \omega'}\Gamma_{pq}(\omega, \omega')\Biggl[c_q[\omega']\rho_S(t)[c^\da_{p}[\omega]] - \frac{1}{2}\bigl\{c^\da_p[\omega]c_{q}[\omega'], \rho_S(t) \bigr\}\Biggr]\label{RF_normal}\\
+    \Rightarrow \frac{d}{dt}\rho_S(t) &= -i[\m{H}, \rho_S(t)] - \sum_{pq = \alpha\beta}(2\delta_{pq}-1)\sum_{\omega, \omega'}\Biggl[\Phi_{pq}(\omega')[c^\da_{p}[\omega], c_q[\omega']\rho_S(t)] - \Phi^*_{qp}(\omega)[c_{q}[\omega'], \rho_S(t)c^\da_p[\omega]]\Biggr]\\
+    &= -i[\m{H}+\m{H}_{\mr{LS}}, \rho_S(t)] + \sum_{pq = \alpha\beta}(2\delta_{pq}-1)\sum_{\omega, \omega'}\Gamma_{pq}(\omega, \omega')\Biggl[c_q[\omega']\rho_S(t)[c^\da_{p}[\omega]] - \frac{1}{2}\bigl\{c^\da_p[\omega]c_{q}[\omega'], \rho_S(t) \bigr\}\Biggr]\label{RF_normal}\\
     \Gamma_{pq}(\omega, \omega') &= \bv{\frac{1}{2}\gamma_{pq}(\omega') +i\eta_{pq}(\omega') + \frac{1}{2}\gamma_{qp}^*(\omega) -i\eta^*_{qp}(\omega)}\\
     &= \bv{\frac{1}{2}\gamma_{pq}(\omega') +i\eta_{pq}(\omega') + \frac{1}{2}\gamma_{pq}(\omega) -i\eta_{pq}(\omega)} = \frac{1}{2}\bv{\gamma_{pq}(\omega) + \gamma_{pq}(\omega')} -i\bv{\eta_{pq}(\omega)-\eta_{pq}(\omega')}\\
     \m{H}_{LS}& =  -i\sum_{pq = \alpha\beta}(1-2\delta_{pq})\sum_{\omega, \omega'}\bv{\frac{1}{2}\gamma_{pq}(\omega') +i\eta_{pq}(\omega') - \frac{1}{2}\gamma_{qp}^*(\omega) +i\eta^*_{qp}(\omega)}\\
@@ -326,7 +326,7 @@ Nathan--Rudner型のGKSL方程式は、このRedfield方程式に対し、
 \begin{align}
     \gamma_{pq}(\omega) = \gamma_{pq}(\omega') =  \qty(\hat{\gamma}^{\frac{1}{2}}(\omega)*\hat{\gamma}^{\frac{1}{2}}(\omega'))_{pq}
 \end{align}
-という近似を行い、$l_{\alpha/\beta} = \mp i$とすれば$-(1-2\delta_{pq}) = l^*_pl_q$なので、
+という近似を行い、$l_{\alpha/\beta} = \mp i$とすれば$(2\delta_{pq}-1) = l^*_pl_q$なので、
 \begin{align}
     \Gamma_{pq}(\omega, \omega') &= \frac{1}{2}\bv{\gamma_{pq}(\omega) + \gamma_{pq}(\omega')} -i\bv{\eta_{pq}(\omega)-\eta_{pq}(\omega')}\nonumber\\
     &\simeq \gamma^{\frac{1}{2}}_{pj}(\omega)*\gamma^{\frac{1}{2}}_{jq}(\omega')

@@ -52,7 +52,6 @@ function nr_parts_from_redfield(m::TwoBathModel)
                 # dissipator term: Aq ρ Ap† - 1/2 {Ap† Aq, ρ}
                 #L_diss += pref * Gamma *
                 L_diss += -2pref * Gamma[pidx[p], pidx[q]] *
-                #L_diss += 2pref * Gamma[pidx[p], pidx[q]] *
                         (spost(Ap', d) * spre(Aq, d) -
                         0.5 * spre(Ap' * Aq, d) - 0.5 * spost(Ap' * Aq, d))
 
@@ -99,7 +98,7 @@ function nr_Heff_from_redfield(m::TwoBathModel)
 
                 # dissipator term: Aq ρ Ap† - 1/2 {Ap† Aq, ρ}
                 #L_diss += pref * Gamma *
-                L_diss += 1.0im * pref * Gamma[pidx[p], pidx[q]] * (Ap' * Aq)
+                L_diss += -1.0im * pref * Gamma[pidx[p], pidx[q]] * (Ap' * Aq)
 
                 # Lamb shift term
                 H_LS += pref * coeff_ls * (Ap' * Aq)

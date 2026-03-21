@@ -70,11 +70,12 @@ function steady_state_td(m::TwoBathModel, ts::Vector{Float64};  verbose::Bool = 
     return rho_ss
 end
 
-function steady_state_tb(m::TwoBathModel)
+function steady_state_tb(m::TwoBathModel; scale::Float64 = 1.0)
     H = system_hamiltonian(m.sys)
     d = size(H, 1)
     static_Lr = redfield_liouvillian(m)
-    dynamic_L_diss, dynamic_H_LS = redfield_parts_TwistedBoundary(m)
+    dynamic_L_diss, dynamic_H_LS = redfield_parts_TwistedBoundary(m; scale = scale)
+    #rho_ss = steady_state_from_liouvillian(static_Lr + commutator_super(dynamic_H_LS) + dynamic_L_diss; d)
     rho_ss = steady_state_from_liouvillian(static_Lr + commutator_super(dynamic_H_LS) + dynamic_L_diss; d)
     return rho_ss
 end
