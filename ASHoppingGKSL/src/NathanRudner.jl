@@ -16,6 +16,67 @@ function gammahat_sqrt(b::BathSpectrum, w::Float64)
 end
 
 """
+γ-matrix square root (eqs. 84-86, 100) at frequency w.
+"""
+
+function gammahat_sqrt_TwistedBoundary(m::TwoBathModel, w::Float64; scale::Float64=1.0)
+    b1 = m.bath1
+    b2 = m.bath2
+    gamma_11 = Phi_from_sigma(b1, :alpha, :alpha, w) + Phi_from_sigma(b1, :alpha, :alpha, w)'  # eq. (72)
+    gamma_p_11 = Phi_from_sigma(b1, :alpha, :beta, w) + Phi_from_sigma(b1, :beta, :alpha, w)'  # eq. (73)
+    gamma_22 = Phi_from_sigma(b2, :alpha, :alpha, w) + Phi_from_sigma(b2, :alpha, :alpha, w)'  # eq. (72)
+    gamma_p_22 = Phi_from_sigma(b2, :alpha, :beta, w) + Phi_from_sigma(b2, :beta, :alpha, w)'  # eq.(73)
+    gamma_12 = scale* (Phi_from_sigma_TwistedBoundary(b1, b2, :alpha, :alpha, w) + Phi_from_sigma_TwistedBoundary(b1, b2, :alpha, :alpha, w)')  # eq. (72)
+    gamma_p_12 = scale* (Phi_from_sigma_TwistedBoundary(b1, b2, :alpha, :beta, w) + Phi_from_sigma_TwistedBoundary(b1, b2, :beta, :alpha, w)')  # eq. (73)
+    gamma_21 = scale* (Phi_from_sigma_TwistedBoundary(b2, b1, :alpha, :alpha, w) + Phi_from_sigma_TwistedBoundary(b2, b1, :alpha, :alpha, w)')  # eq. (72)
+    gamma_p_21 = scale* (Phi_from_sigma_TwistedBoundary(b2, b1, :alpha, :beta, w) + Phi_from_sigma_TwistedBoundary(b2, b1, :beta, :alpha, w)')  # eq. (73)
+
+    g = C64[gamma_11 gamma_p_11 gamma_12 gamma_p_12;
+            gamma_p_11' gamma_11 gamma_p_12' gamma_12;
+            gamma_21 gamma_p_21 gamma_22 gamma_p_22;
+            gamma_p_21' gamma_21 gamma_p_22' gamma_22]
+    eigvals, eigvecs = eigen(Hermitian(g))
+    sqrt_eigvals = sqrt.(complex.(eigvals))
+    sqrt_g = eigvecs * Diagonal(sqrt_eigvals) * eigvecs'
+    sqrt_g_dict = Dict((1, 1) => sqrt_g[1:2, 1:2], (1, 2) => sqrt_g[1:2, 3:4],
+                     (2, 1) => sqrt_g[3:4, 1:2], (2, 2) => sqrt_g[3:4, 3:4])
+    return sqrt_g_dict
+end
+#=
+function gammahat_sqrt_TwistedBoundary(m::TwoBathModel, w::Float64; scale::Float64=1.0)
+    b1 = m.bath1
+    b2 = m.bath2
+    gamma_11 = Phi_from_sigma(b1, :alpha, :alpha, w) + Phi_from_sigma(b1, :alpha, :alpha, w)'  # eq. (72)
+    gamma_p_11 = Phi_from_sigma(b1, :alpha, :beta, w) + Phi_from_sigma(b1, :beta, :alpha, w)'  # eq. (73)
+    gamma_22 = Phi_from_sigma(b2, :alpha, :alpha, w) + Phi_from_sigma(b2, :alpha, :alpha, w)'  # eq. (72)
+    gamma_p_22 = Phi_from_sigma(b2, :alpha, :beta, w) + Phi_from_sigma(b2, :beta, :alpha, w)'  # eq.(73)
+    gamma_12 = scale* (Phi_from_sigma_TwistedBoundary(b1, b2, :alpha, :alpha, w) + Phi_from_sigma_TwistedBoundary(b1, b2, :alpha, :alpha, w)')  # eq. (72)
+    gamma_p_12 = scale* (Phi_from_sigma_TwistedBoundary(b1, b2, :alpha, :beta, w) + Phi_from_sigma_TwistedBoundary(b1, b2, :beta, :alpha, w)')  # eq. (73)
+    gamma_21 = scale* (Phi_from_sigma_TwistedBoundary(b2, b1, :alpha, :alpha, w) + Phi_from_sigma_TwistedBoundary(b2, b1, :alpha, :alpha, w)')  # eq. (72)
+    gamma_p_21 = scale* (Phi_from_sigma_TwistedBoundary(b2, b1, :alpha, :beta, w) + Phi_from_sigma_TwistedBoundary(b2, b1, :beta, :alpha, w)')  # eq. (73)
+
+    g1 = C64[gamma_11 gamma_p_11; gamma_p_11' gamma_11]
+    g2 = C64[gamma_22 gamma_p_22; gamma_p_22' gamma_22]
+    g12 = C64[gamma_12 gamma_p_12; gamma_p_12' gamma_12]
+    g21 = C64[gamma_21 gamma_p_21; gamma_p_21' gamma_21]
+    eigvals, eigvecs = eigen(Hermitian(g1))
+    sqrt_eigvals = sqrt.(complex.(eigvals))
+    sqrt_g_11 = eigvecs * Diagonal(sqrt_eigvals) * eigvecs'
+    eigvals, eigvecs = eigen(Hermitian(g2))
+    sqrt_eigvals = sqrt.(complex.(eigvals))
+    sqrt_g_22 = eigvecs * Diagonal(sqrt_eigvals) * eigvecs'
+    eigvals, eigvecs = eigen(Hermitian(g12))
+    sqrt_eigvals = sqrt.(complex.(eigvals))
+    sqrt_g_12 = eigvecs * Diagonal(sqrt_eigvals) * eigvecs'
+    eigvals, eigvecs = eigen(Hermitian(g21))
+    sqrt_eigvals = sqrt.(complex.(eigvals))
+    sqrt_g_21 = eigvecs * Diagonal(sqrt_eigvals) * eigvecs'
+    sqrt_g_dict = Dict((1, 1) => sqrt_g_11, (1, 2) => sqrt_g_12,
+                     (2, 1) => sqrt_g_21, (2, 2) => sqrt_g_22)
+    return sqrt_g_dict
+end=#
+
+"""
 Nathan-Rudner type GKSL Liouvillian (eqs. 100-109).
 """
 function nr_parts_from_redfield(m::TwoBathModel)
@@ -166,6 +227,75 @@ function nr_gksl_liouvillian(m::TwoBathModel)
         for J in jumps
             L += lindblad_super(J)
         end
+    end
+    return L
+end
+
+function nr_gksl_liouvillian_TwistedBoundary(m::TwoBathModel; scale::Float64 = 1.0)
+    H = system_hamiltonian(m.sys)
+    d = size(H, 1)
+    r, _, _ = mixing_angles(m.sys)
+    Hls_total = zeros(C64, d, d)
+    pset = (:alpha, :beta)
+    pidx = Dict(:alpha => 1, :beta => 2)
+    lfac = Dict(:alpha => -im, :beta => im) # l_{α/β} = ∓ i
+
+    # Accumulate Lamb shift from each bath
+    for (site, bath) in ((1, m.bath1), (2, m.bath2))
+        ops = coupling_ops_by_frequency(m.sys, site)
+        Hls = zeros(C64, d, d)
+        for p in pset, q in pset, sgn_w in (+1, -1), sgn_wp in (+1, -1)
+            w = sgn_w * r
+            wp = sgn_wp * r
+            Ap = ops[(p, sgn_w)]   # c_p[w]
+            Aq = ops[(q, sgn_wp)]  # c_q[w']
+            pref = (p == q) ? -1.0 : 1.0  # (1 - 2δ_pq)
+
+            gamma_w, eta_w = gamma_eta_from_phi(bath, p, q, w)
+            gamma_wp, eta_wp = gamma_eta_from_phi(bath, p, q, wp)
+
+            #coeff = 0.5 * (eta_w + eta_wp) + 0.25im * (gamma_w - gamma_wp)
+            coeff = 0.5 * (eta_w + eta_wp)
+            Hls += pref * coeff * (Ap' * Aq)
+        end
+        Hls = 0.5 * (Hls + Hls')
+        Hls_total += Hls
+    end
+    _, H_LS_TB = redfield_parts_TwistedBoundary(m; scale=scale)
+    Hls_total += H_LS_TB
+
+    L = commutator_super(H + Hls_total)
+
+    # Dissipator (Nathan-Rudner GKSL)
+    ops = [coupling_ops_by_frequency(m.sys, 1), coupling_ops_by_frequency(m.sys, 2)]
+    #=
+    jumps = Matrix{C64}[]
+    for sgn in (+1, -1)
+        sqg = gammahat_sqrt_TwistedBoundary(m, sgn * r; scale=scale)
+        J = zeros(C64, d, d)
+        for p in pset, site1 in (1, 2)
+            for q in pset, site2 in (1, 2)
+                J += sqg[(site1, site2)][pidx[p], pidx[q]] * lfac[q] * ops[site2][(q, sgn)]
+            end
+            push!(jumps, J)
+        end
+        for J in jumps
+            L += lindblad_super(J)
+        end
+    end=#
+    jumps = Matrix{C64}[]
+    for p in pset, site1 in (1, 2)
+        J = zeros(C64, d, d)
+        for sgn in (+1, -1)
+            sqg = gammahat_sqrt_TwistedBoundary(m, sgn * r; scale=scale)
+            for q in pset, site2 in (1, 2)
+                J += sqg[(site1, site2)][pidx[p], pidx[q]] * lfac[q] * ops[site2][(q, sgn)]
+            end
+        end
+        push!(jumps, J)
+    end
+    for J in jumps
+        L += lindblad_super(J)
     end
     return L
 end

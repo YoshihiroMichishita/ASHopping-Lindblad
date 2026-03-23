@@ -42,6 +42,7 @@ end
 
 function Phi_from_sigma_TwistedBoundary(b1::BathSpectrum, b2::BathSpectrum, p::Symbol, q::Symbol, w::Float64)
     Δ = b2.μ - b1.μ
+    #Δ = b1.μ - b2.μ
     s1 = b2.Sigma(w+Δ)
     s2 = conj(b2.SigmaTilde(-w+Δ))
     if p == q
@@ -163,7 +164,7 @@ function redfield_Heff(m::TwoBathModel)
 
             # Lamb shift term
             H_LS += pref * coeff_ls  * (Ap' * Aq)
-            H_g += -pref * 1.0im*Gamma * (Ap' * Aq)
+            H_g += pref * 1.0im*Gamma * (Ap' * Aq)
         end
     end
 
@@ -213,7 +214,7 @@ function redfield_parts(m::TwoBathModel, ind_bath::Int)
     return L_diss, H_LS
 end
 
-function redfield_parts_TwistedBoundary(m::TwoBathModel, t::Float64)
+function redfield_parts_TwistedBoundary(m::TwoBathModel, t::Float64; scale::Float64=1.0)
     H = system_hamiltonian(m.sys)
     d = size(H, 1)
     r, _, _ = mixing_angles(m.sys)
@@ -270,7 +271,7 @@ function redfield_parts_TwistedBoundary(m::TwoBathModel, t::Float64)
     end
 
     H_LS = 0.5 * (H_LS + H_LS')
-    return L_diss, H_LS
+    return scale*L_diss, scale*H_LS
 end
 
 
@@ -342,6 +343,68 @@ function redfield_parts_TwistedBoundary(m::TwoBathModel; scale::Float64=1.0)
 
     H_LS = 0.5 * (H_LS + H_LS')
     return scale * L_diss, scale * H_LS
+end
+
+function redfield_Heff_TwistedBoundary(m::TwoBathModel; scale::Float64=1.0)
+    H = system_hamiltonian(m.sys)
+    d = size(H, 1)
+    r, _, _ = mixing_angles(m.sys)
+    pq = (:alpha, :beta)
+    H_nh = zeros(C64, d, d)
+    H_LS = zeros(C64, d, d)
+
+    ops = [coupling_ops_by_frequency(m.sys, 1), coupling_ops_by_frequency(m.sys, 2)]
+
+    #1,2
+    for p in pq, q in pq, sgn_w in (+1, -1), sgn_wp in (+1, -1)
+        w = sgn_w * r
+        wp = sgn_wp * r
+        Ap = ops[1][(p, sgn_w)]   # c_p[w]
+        Aq = ops[2][(q, sgn_wp)]  # c_q[w']
+        pref = (p == q) ? -1.0 : 1.0  # -(1 - 2δ_pq)
+
+        #gamma_w, eta_w = gamma_eta_from_phi_TwistedBoundary(m.bath1, m.bath2, p, q, w)
+        gamma_w, eta_w = gamma_eta_from_phi_TwistedBoundary(m.bath1, m.bath2, q, p, w)
+        gamma_wp, eta_wp = gamma_eta_from_phi_TwistedBoundary(m.bath2, m.bath1, p, q, wp)
+
+        
+        #Gamma = 0.5 * (gamma_w + gamma_wp) - 1im * (eta_w - eta_wp)
+        #coeff_ls = 0.5 * (eta_w + eta_wp) + 0.25im * (gamma_w - gamma_wp)
+
+        Gamma = 0.5 * (gamma_w' + gamma_wp) - 1im * (eta_w' - eta_wp)
+        coeff_ls = 0.5 * (eta_w' + eta_wp) + 0.25im * (gamma_w' - gamma_wp)
+
+        # Lamb shift term
+        #H_LS += -pref * coeff_ls * (Ap' * Aq)
+        H_LS += pref * coeff_ls * (Ap' * Aq)
+        H_nh += pref * 1.0im*Gamma * (Ap' * Aq)
+    end
+    #2,1
+    for p in pq, q in pq, sgn_w in (+1, -1), sgn_wp in (+1, -1)
+        w = sgn_w * r
+        wp = sgn_wp * r
+        Ap = ops[2][(p, sgn_w)]   # c_p[w]
+        Aq = ops[1][(q, sgn_wp)]  # c_q[w']
+        pref = (p == q) ? -1.0 : 1.0  # -(1 - 2δ_pq)
+
+        #gamma_w, eta_w = gamma_eta_from_phi_TwistedBoundary(m.bath2, m.bath1, p, q, w)
+        gamma_w, eta_w = gamma_eta_from_phi_TwistedBoundary(m.bath2, m.bath1, q, p, w)
+        gamma_wp, eta_wp = gamma_eta_from_phi_TwistedBoundary(m.bath1, m.bath2, p, q, wp)
+
+        #Gamma = 0.5 * (gamma_w + gamma_wp) - 1im * (eta_w - eta_wp)
+        #coeff_ls = 0.5 * (eta_w + eta_wp) + 0.25im * (gamma_w - gamma_wp)
+
+        Gamma = 0.5 * (gamma_w' + gamma_wp) - 1im * (eta_w' - eta_wp)
+        coeff_ls = 0.5 * (eta_w' + eta_wp) + 0.25im * (gamma_w' - gamma_wp)
+
+        # Lamb shift term
+        #H_LS += -pref * coeff_ls * (Ap' * Aq)
+        H_LS += pref * coeff_ls * (Ap' * Aq)
+        H_nh += pref * 1.0im*Gamma * (Ap' * Aq)
+    end
+
+    H_LS = 0.5 * (H_LS + H_LS')
+    return scale * H_LS, scale * H_nh
 end
 
 function normalgksl_parts(m::TwoBathModel)
@@ -434,17 +497,64 @@ end
 Redfield Liouvillian (eq. 95) for the two-bath model.
 """
 
-function redfield_liouvillian_TwistedBoundary(m::TwoBathModel, ts::Vector{Float64} = collect(0.0:0.02:2.0))
+function redfield_liouvillian_TwistedBoundary(m::TwoBathModel, ts::Vector{Float64} = collect(0.0:0.02:2.0); scale::Float64=1.0)
     H = system_hamiltonian(m.sys)
     #ts = collect(0.0:0.02:2.0)  # Example time points for the twist
     L_diss = Matrix{C64}[]
     H_LS = Matrix{C64}[]
     for t in ts
-        L_diss_t, H_LS_t = redfield_parts_TwistedBoundary(m, t)
+        L_diss_t, H_LS_t = redfield_parts_TwistedBoundary(m, t; scale=scale)
         push!(L_diss, L_diss_t)
         push!(H_LS, H_LS_t)
     end
     return H_LS, L_diss
+end
+
+function periodic_steady_state_td(m::TwoBathModel; Nt::Int = 400, scale::Float64=1.0)
+    H = system_hamiltonian(m.sys)
+    d = size(H, 1)
+
+    Δμ = m.bath2.μ - m.bath1.μ
+    abs(Δμ) > 0 || error("For Δμ = 0, use the static steady-state solver instead.")
+
+    T = 2π / abs(Δμ)
+    ts = collect(range(0.0, T; length = Nt + 1))
+    dt = ts[2] - ts[1]
+
+    staticL = redfield_liouvillian(m)
+    Hls_list, Ldiss_list = redfield_liouvillian_TwistedBoundary(m, ts[1:end-1]; scale=scale)
+
+    # Build one-period propagator M ≈ Π_k exp(dt * L(t_k))
+    M = Matrix{C64}(I, d^2, d^2)
+    for k in 1:length(Hls_list)
+        Lt = staticL + commutator_super(Hls_list[k]) + Ldiss_list[k]
+        M = exp(dt * Lt) * M
+    end
+
+    # Fixed point of one-period map with trace constraint
+    I_d = Matrix{C64}(I, d, d)
+    tr_row = reshape(vec(transpose(I_d)), 1, :)
+    A = [M - Matrix{C64}(I, d^2, d^2); tr_row]
+    b = zeros(C64, d^2 + 1)
+    b[end] = 1 + 0im
+
+    rho0_vec = A \ b
+    rho0 = reshape(rho0_vec, d, d)
+    rho0 = 0.5 * (rho0 + rho0')
+    rho0 ./= real(tr(rho0))
+
+    return rho0, ts, Hls_list, Ldiss_list
+end
+
+function propagate_one_period(rho, staticL, Hls_list, Ldiss_list, dt)
+    d = size(rho, 1)
+    for k in 1:length(Hls_list)
+        Lt = staticL + commutator_super(Hls_list[k]) + Ldiss_list[k]
+        rho = reshape(exp(dt * Lt) * vec(rho), d, d)
+        rho = 0.5 * (rho + rho')
+        rho ./= real(tr(rho))
+    end
+    return rho
 end
 
 
