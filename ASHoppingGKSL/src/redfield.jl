@@ -92,6 +92,97 @@ end
 Redfield Liouvillian pieces (eq. 95): dissipator superoperator and Lamb shift H_LS.
 Returns (L_diss, H_LS).
 """
+# channels are unchanged
+bath_channels() = (:alpha, :beta)
+
+# for an N-site chain with two terminal baths
+function bath_site_pairs(m)
+    n = nsites(m.sys)  # define this somewhere in ops_space side
+    return (
+        (1, m.bath1),
+        (n, m.bath2),
+    )
+end
+
+# site acted on by one bath index
+function bath_site(m, ind_bath::Int)
+    n = nsites(m.sys)
+    if ind_bath == 1
+        return 1
+    elseif ind_bath == 2
+        return n
+    else
+        error("bath index must be 1 or 2")
+    end
+end
+
+function bath_by_index(m, ind_bath::Int)
+    if ind_bath == 1
+        return m.bath1
+    elseif ind_bath == 2
+        return m.bath2
+    else
+        error("bath index must be 1 or 2")
+    end
+end
+
+function frequency_list(ops::Dict)
+    ws = Float64[]
+    for ((ch, w), _) in ops
+        push!(ws, w)
+    end
+    return sort(unique(ws))
+end
+
+function redfield_coefficients_from_bath(bath::BathSpectrum, p::Symbol, q::Symbol, w::Float64, wp::Float64)
+    gamma_w, eta_w = gamma_eta_from_phi(bath, p, q, w)
+    gamma_wp, eta_wp = gamma_eta_from_phi(bath, p, q, wp)
+
+    Gamma = 0.5 * (gamma_w + gamma_wp) - 1im * (eta_w - eta_wp)
+    coeff_ls = 0.5 * (eta_w + eta_wp) + 0.25im * (gamma_w - gamma_wp)
+
+    return Gamma, coeff_ls
+end
+
+function redfield_parts(m::TwoBathModel)
+    H = system_hamiltonian(m.sys)
+    d = size(H, 1)
+
+    L_diss = zeros(C64, d^2, d^2)
+    H_LS = zeros(C64, d, d)
+
+    # cache all site-resolved frequency decompositions for the bath-coupled sites
+    ops_by_site = Dict{Int, Dict}()
+    for (site, _) in bath_site_pairs(m)
+        ops_by_site[site] = coupling_ops_by_frequency(m.sys, site)
+    end
+
+    for (site, bath) in bath_site_pairs(m)
+        ops = ops_by_site[site]
+        freqs = frequency_list(ops)
+
+        for p in bath_channels(), q in bath_channels(), w in freqs, wp in freqs
+            Ap = ops[(p, w)]
+            Aq = ops[(q, wp)]
+
+            pref = (p == q) ? -1.0 : 1.0
+
+            Gamma, coeff_ls = redfield_coefficients_from_bath(bath, p, q, w, wp)
+
+            L_diss += -2pref * Gamma * (
+                spost(Ap', d) * spre(Aq, d)
+                - 0.5 * spre(Ap' * Aq, d)
+                - 0.5 * spost(Ap' * Aq, d)
+            )
+
+            H_LS += pref * coeff_ls * (Ap' * Aq)
+        end
+    end
+
+    H_LS = 0.5 * (H_LS + H_LS')
+    return L_diss, H_LS
+end
+
 
 function redfield_parts(m::TwoBathModel)
     H = system_hamiltonian(m.sys)
