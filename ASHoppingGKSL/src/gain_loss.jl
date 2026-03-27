@@ -3,6 +3,199 @@
 #include("redfield.jl")
 #include("NathanRudner.jl")
 
+function site_ops(p)
+    # 3サイト版なら fermion_ops_3site() を呼ぶ
+    # 将来は generic fermion_ops_chain(nsites(p)) に差し替えたい
+    if p.n_sites == 2
+        c1, c2, _, _ = fermion_ops_2site()
+        return [c1, c2], [c1', c2']
+    elseif p.n_sites == 3
+        c1, c2, c3, cd1, cd2, cd3 = fermion_ops_3site()
+        c_ops  = [c1, c2, c3]
+        cd_ops = [cd1, cd2, cd3]
+        return c_ops, cd_ops
+    else
+        error("n_sites must be 2 or 3")
+    end
+end
+
+function local_number_projectors(p)
+    c_ops, cd_ops = site_ops(p)
+
+    n_ops = Matrix{C64}[]
+    nbar_ops = Matrix{C64}[]
+
+    for i in 1:p.n_sites
+        n = cd_ops[i] * c_ops[i]
+        nbar = c_ops[i] * cd_ops[i]
+        push!(n_ops, n)
+        push!(nbar_ops, nbar)
+    end
+
+    return n_ops, nbar_ops
+end
+
+function nr_jumps_by_bath(m::TwoBathModel)
+    pset = majorana_channels()
+    pidx = majorana_channel_index()
+    lfac = nr_lfac()
+
+    jumps_by_site = Dict{Tuple{Int, Int}, Vector{Matrix{C64}}}()
+
+    for site in 1:m.sys.n_sites
+        ops = coupling_ops_by_frequency(m.sys, site)
+        freqs = frequency_list(ops)
+        for bath in (1, 2)
+            if bath == 1
+                bath_obj = m.bath1
+            else
+                bath_obj = m.bath2
+            end
+            jumps = Matrix{C64}[]
+
+            for p in pset
+                J = zero(ops[(pset[1], freqs[1])])
+
+                for w in freqs
+                    sqg = gammahat_sqrt(bath_obj, w)
+                    for q in pset
+                        J += sqg[pidx[p], pidx[q]] * lfac[q] * ops[(q, w)]
+                    end
+                end
+
+                push!(jumps, J)
+            end
+            jumps_by_site[(bath, site)] = jumps
+        end
+    end
+
+    return jumps_by_site
+end
+
+function redfield_gain_loss(m::TwoBathModel, bathind::Int, rho::Matrix{C64})
+    pset = majorana_channels()
+
+    site = bath_site(m, bathind)
+    bath = bath_by_index(m, bathind)
+
+    ops = coupling_ops_by_frequency(m.sys, site)
+    freqs = frequency_list(ops)
+
+    n_ops, nbar_ops = local_number_projectors(m.sys)
+    nsites_sys = m.sys.n_sites
+
+    gain_site = zeros(Float64, nsites_sys)
+    loss_site = zeros(Float64, nsites_sys)
+
+    for p in pset, q in pset, w in freqs, wp in freqs
+        Ap = ops[(p, w)]
+        Aq = ops[(q, wp)]
+
+        pref = (p == q) ? 1.0 : -1.0
+
+        gamma_w,  eta_w  = gamma_eta_from_phi(bath, p, q, w)
+        gamma_wp, eta_wp = gamma_eta_from_phi(bath, p, q, wp)
+
+        Gamma = 0.5 * (gamma_w + gamma_wp) - 1im * (eta_w - eta_wp)
+
+        for i in 1:nsites_sys
+            n_i = n_ops[i]
+            nbar_i = nbar_ops[i]
+
+            Aq_gain = n_i    * Aq * nbar_i
+            Ap_gain = n_i    * Ap * nbar_i
+            Aq_loss = nbar_i * Aq * n_i
+            Ap_loss = nbar_i * Ap * n_i
+
+            gain_site[i] += 2real(pref * Gamma * tr(Aq_gain * rho * Ap_gain'))
+            loss_site[i] += 2real(pref * Gamma * tr(Aq_loss * rho * Ap_loss'))
+        end
+    end
+
+    return gain_site, loss_site
+end
+
+function site_gain_loss_bath(m::TwoBathModel, rho::Matrix{C64}; method::Symbol = :nr)
+    nsites_sys = m.sys.n_sites
+    results = Dict{Tuple{Int, Int}, Tuple{Float64, Float64, Float64}}()
+
+    if method == :nr
+        n_ops, nbar_ops = local_number_projectors(m.sys)
+        jumps_by_bath = nr_jumps_by_bath(m)
+
+        for bathind in 1:2
+            for site in 1:nsites_sys
+                gain = 0.0
+                loss = 0.0
+
+                n_i = n_ops[site]
+                nbar_i = nbar_ops[site]
+
+                for J in jumps_by_bath[(bathind, site)]
+                    gain_J = n_i    * J * nbar_i
+                    loss_J = nbar_i * J * n_i
+
+                    gain += 2real(tr(gain_J * rho * gain_J'))
+                    loss += 2real(tr(loss_J * rho * loss_J'))
+                end
+
+                results[(bathind, site)] = (gain, loss, gain - loss)
+            end
+        end
+
+        return results
+
+    elseif method == :redfield
+        for bathind in 1:2
+            gain_site, loss_site = redfield_gain_loss(m, bathind, rho)
+
+            for site in 1:m.sys.n_sites
+                results[(bathind, site)] = (
+                    gain_site[site],
+                    loss_site[site],
+                    gain_site[site] - loss_site[site],
+                )
+            end
+        end
+
+        return results
+
+    else
+        error("method must be :nr or :redfield")
+    end
+end
+
+function total_site_gain_loss(results::Dict, nsites_sys::Int)
+    gain = zeros(Float64, nsites_sys)
+    loss = zeros(Float64, nsites_sys)
+    net  = zeros(Float64, nsites_sys)
+
+    for site in 1:nsites_sys
+        for bathind in 1:2
+            gain[site] += results[(bathind, site)][1]
+            loss[site] += results[(bathind, site)][2]
+            net[site]  += results[(bathind, site)][3]
+        end
+    end
+
+    return gain, loss, net
+end
+
+function dissipative_site_net_from_liouvillian(L_diss::Matrix{C64}, rho::Matrix{C64}, p)
+    n_ops, _ = local_number_projectors(p)
+    d = size(rho, 1)
+
+    net = zeros(Float64, length(n_ops))
+    drho = reshape(L_diss * vec(rho), d, d)
+
+    for i in 1:length(n_ops)
+        net[i] = real(tr(n_ops[i] * drho))
+    end
+
+    return net
+end
+
+#=
 function nr_jumps_by_site(m::TwoBathModel)
     r, _, _ = mixing_angles(m.sys)
     pset = (:alpha, :beta)
@@ -75,10 +268,10 @@ function redfield_gain_loss(m::TwoBathModel, bathind::Int, rho::Matrix{C64})
         end
     end
     return Gain_site, Loss_site
-end
+end=#
 
 function redfield_TB_net(m::TwoBathModel, rho::Matrix{C64}; scale::Float64=1.0)
-    H = system_hamiltonian(m.sys)
+    _, H = system_hamiltonian(m.sys)
     d = size(H, 1)
     r, _, _ = mixing_angles(m.sys)
     pq = (:alpha, :beta)
@@ -156,6 +349,7 @@ function redfield_TB_net(m::TwoBathModel, rho::Matrix{C64}; scale::Float64=1.0)
     return net_site
 end
 
+#=
 function site_gain_loss_bath(m::TwoBathModel, rho::Matrix{C64}; method::Symbol = :gksl, scale::Float64 = 1.0)
     c1, c2, cd1, cd2 = fermion_ops_2site()
     loss_ops = Dict(1 => c1, 2 => c2)
@@ -206,4 +400,4 @@ function site_gain_loss_bath(m::TwoBathModel, rho::Matrix{C64}; method::Symbol =
     else
         error("method must be :gksl or :redfield")
     end
-end
+end=#

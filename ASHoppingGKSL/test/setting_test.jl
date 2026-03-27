@@ -8,7 +8,7 @@ import ASHoppingGKSL as gksl
     Gamma::Float64 = 1.0
     tau_c::Float64 = 1.0
 
-    sys = gksl.SystemParams(1.0, omega)
+    sys = gksl.SystemParams(2, 1.0, omega)
     bathL = gksl.make_bath(Gamma = Gamma, mu = mu, beta = beta, tau_c = tau_c)
     bathR = gksl.make_bath(Gamma = Gamma, mu = -mu, beta = beta, tau_c = tau_c)
     model = gksl.TwoBathModel(sys, bathL, bathR)

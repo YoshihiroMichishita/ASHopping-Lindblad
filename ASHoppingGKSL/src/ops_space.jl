@@ -43,13 +43,19 @@ end
 function system_hamiltonian(p::SystemParams)
     if p.n_sites == 2
         c1, c2, cd1, cd2 = fermion_ops_2site()
-        n1 = cd1 * c1
-        n2 = cd2 * c2
+        H_matrix = -p.t * [0 1; 1 0] - 0.5 * p.omega * [1 0; 0 -1]
+        H_op = [c1, c2]' * H_matrix * [c1, c2]
+        return H_matrix, H_op
         # Match main.tex convention: H_S = -t(c1†c2 + c2†c1) - (omega/2)(n1 - n2)
-        return -p.t * (cd1 * c2 + cd2 * c1) - 0.5 * p.omega * (n1 - n2)
+        #return -p.t * (cd1 * c2 + cd2 * c1) - 0.5 * p.omega * (n1 - n2)
     elseif p.n_sites == 3
         c1, c2, c3, cd1, cd2, cd3 = fermion_ops_3site()
 
+        H_matrix = -p.t * [0 1 0; 1 0 1; 0 1 0] - p.omega * diagm([-1.0, 0.0, +1.0])
+        c_vec = [c1, c2, c3]
+        H_op = c_vec' * H_matrix * c_vec
+        return H_matrix, H_op
+        #=
         n1 = cd1 * c1
         n2 = cd2 * c2
         n3 = cd3 * c3
@@ -61,7 +67,7 @@ function system_hamiltonian(p::SystemParams)
 
         H_pot = -p.omega * n1 + 0.0 * n2 + p.omega * n3
 
-        return H_hop + H_pot
+        return H_hop + H_pot=#
     else
         error("n_sites must be 2 or 3")
     end
@@ -89,14 +95,14 @@ end
 function single_particle_eigensystem(p::SystemParams)
     if p.n_sites == 2
         c1, c2, _, _ = fermion_ops_2site()
-        h = system_hamiltonian(p)
+        h_matrix, h_op = system_hamiltonian(p)
     elseif p.n_sites == 3
         c1, c2, c3, _, _, _ = fermion_ops_3site()
-        h = system_hamiltonian_3site(p)
+        h_matrix, h_op = system_hamiltonian(p)
     else
         error("n_sites must be 2 or 3")
     end
-    eig = eigen(Hermitian(h))
+    eig = eigen(Hermitian(h_matrix))
 
     eps = real.(eig.values)
     U = eig.vectors
@@ -150,7 +156,8 @@ end
 
 # Group nearby frequencies to avoid raw floating-point Dict keys.
 function bucket_frequency(w::Float64; tol::Float64 = 1e-10)
-    return round(w / tol) * tol
+    wb = round(w / tol) * tol
+    return abs(wb) < tol ? 0.0 : wb
 end
 
 # Decompose the local Hermitian bath-coupling operators at site i
@@ -189,8 +196,8 @@ function coupling_ops_by_frequency(p::SystemParams, site::Int; tol::Float64 = 1e
         d = d_modes[a]
         dd = dd_modes[a]
 
-        w_ann = bucket_frequency(-e; tol=tol)  # [H, d] = -e d
-        w_cre = bucket_frequency(+e; tol=tol)  # [H, d†] = +e d†
+        w_ann = bucket_frequency(+e; tol=tol)
+        w_cre = bucket_frequency(-e; tol=tol)
 
         ops[(:alpha, w_ann)] += (im / sqrt(2)) * u * d
         ops[(:alpha, w_cre)] += (-im / sqrt(2)) * conj(u) * dd

@@ -41,7 +41,7 @@ end
 
 
 function steady_states(m::TwoBathModel)
-    H = system_hamiltonian(m.sys)
+    _, H = system_hamiltonian(m.sys)
     d = size(H, 1)
     Lr = redfield_liouvillian(m)
     #Lg = nr_liouvillian_from_redfield(m)
@@ -50,7 +50,7 @@ function steady_states(m::TwoBathModel)
 end
 
 function steady_states3(m::TwoBathModel)
-    H = system_hamiltonian(m.sys)
+    _, H = system_hamiltonian(m.sys)
     d = size(H, 1)
     Lr = redfield_liouvillian(m)
     Lng = normalgksl_liouvillian(m)
@@ -60,7 +60,7 @@ function steady_states3(m::TwoBathModel)
 end
 
 function steady_state_td(m::TwoBathModel, ts::Vector{Float64};  verbose::Bool = true)
-    H = system_hamiltonian(m.sys)
+    _, H = system_hamiltonian(m.sys)
     d = size(H, 1)
     static_Lr = redfield_liouvillian(m)
     dynamic_H_LSs, dynamic_L_disss = redfield_liouvillian_TwistedBoundary(m, ts)
@@ -71,7 +71,7 @@ function steady_state_td(m::TwoBathModel, ts::Vector{Float64};  verbose::Bool = 
 end
 
 function steady_state_tb(m::TwoBathModel; scale::Float64 = 1.0)
-    H = system_hamiltonian(m.sys)
+    _, H = system_hamiltonian(m.sys)
     d = size(H, 1)
     static_Lr = redfield_liouvillian(m)
     dynamic_L_diss, dynamic_H_LS = redfield_parts_TwistedBoundary(m; scale = scale)
@@ -82,7 +82,7 @@ end
 
 function steady_state_tb_nr(m::TwoBathModel; scale::Float64 = 1.0)
     L = nr_gksl_liouvillian_TwistedBoundary(m; scale = scale)
-    d = size(system_hamiltonian(m.sys), 1)
+    d = size(system_hamiltonian(m.sys)[2], 1)
     rho_ss = steady_state_from_liouvillian(L; d = d)
     return rho_ss
 end
@@ -113,7 +113,7 @@ function steady_state_from_liouvillian_ncondition(L::Matrix{C64}, Nexp::Float64=
 end
 
 function steady_state_tb_ncondition(m::TwoBathModel, Nexp::Float64 = 1.0)
-    H = system_hamiltonian(m.sys)
+    _, H = system_hamiltonian(m.sys)
     d = size(H, 1)
     static_Lr = redfield_liouvillian(m)
     dynamic_L_diss, dynamic_H_LS = redfield_parts_TwistedBoundary(m)

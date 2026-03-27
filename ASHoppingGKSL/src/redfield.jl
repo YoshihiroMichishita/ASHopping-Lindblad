@@ -93,11 +93,11 @@ Redfield Liouvillian pieces (eq. 95): dissipator superoperator and Lamb shift H_
 Returns (L_diss, H_LS).
 """
 # channels are unchanged
-bath_channels() = (:alpha, :beta)
+majorana_channels() = (:alpha, :beta)
 
 # for an N-site chain with two terminal baths
 function bath_site_pairs(m)
-    n = nsites(m.sys)  # define this somewhere in ops_space side
+    n = m.sys.n_sites  # define this somewhere in ops_space side
     return (
         (1, m.bath1),
         (n, m.bath2),
@@ -106,7 +106,7 @@ end
 
 # site acted on by one bath index
 function bath_site(m, ind_bath::Int)
-    n = nsites(m.sys)
+    n = m.sys.n_sites
     if ind_bath == 1
         return 1
     elseif ind_bath == 2
@@ -145,7 +145,7 @@ function redfield_coefficients_from_bath(bath::BathSpectrum, p::Symbol, q::Symbo
 end
 
 function redfield_parts(m::TwoBathModel)
-    H = system_hamiltonian(m.sys)
+    _, H = system_hamiltonian(m.sys)
     d = size(H, 1)
 
     L_diss = zeros(C64, d^2, d^2)
@@ -161,7 +161,7 @@ function redfield_parts(m::TwoBathModel)
         ops = ops_by_site[site]
         freqs = frequency_list(ops)
 
-        for p in bath_channels(), q in bath_channels(), w in freqs, wp in freqs
+        for p in majorana_channels(), q in majorana_channels(), w in freqs, wp in freqs
             Ap = ops[(p, w)]
             Aq = ops[(q, wp)]
 
@@ -183,9 +183,70 @@ function redfield_parts(m::TwoBathModel)
     return L_diss, H_LS
 end
 
+function redfield_parts(m::TwoBathModel, ind_bath::Int)
+    _, H = system_hamiltonian(m.sys)
+    d = size(H, 1)
 
+    L_diss = zeros(C64, d^2, d^2)
+    H_LS = zeros(C64, d, d)
+
+    site = bath_site(m, ind_bath)
+    bath = bath_by_index(m, ind_bath)
+
+    ops = coupling_ops_by_frequency(m.sys, site)
+    freqs = frequency_list(ops)
+
+    for p in majorana_channels(), q in majorana_channels(), w in freqs, wp in freqs
+        Ap = ops[(p, w)]
+        Aq = ops[(q, wp)]
+
+        pref = (p == q) ? -1.0 : 1.0
+        Gamma, coeff_ls = redfield_coefficients_from_bath(bath, p, q, w, wp)
+
+        L_diss += -2pref * Gamma * (
+            spost(Ap', d) * spre(Aq, d)
+            - 0.5 * spre(Ap' * Aq, d)
+            - 0.5 * spost(Ap' * Aq, d)
+        )
+
+        H_LS += pref * coeff_ls * (Ap' * Aq)
+    end
+
+    H_LS = 0.5 * (H_LS + H_LS')
+    return L_diss, H_LS
+end
+
+function redfield_Heff(m::TwoBathModel)
+    _, H = system_hamiltonian(m.sys)
+    d = size(H, 1)
+
+    H_LS = zeros(C64, d, d)
+    H_g  = zeros(C64, d, d)
+
+    for (site, bath) in bath_site_pairs(m)
+        ops = coupling_ops_by_frequency(m.sys, site)
+        freqs = frequency_list(ops)
+
+        for p in majorana_channels(), q in majorana_channels(), w in freqs, wp in freqs
+            Ap = ops[(p, w)]
+            Aq = ops[(q, wp)]
+
+            pref = (p == q) ? -1.0 : 1.0
+            Gamma, coeff_ls = redfield_coefficients_from_bath(bath, p, q, w, wp)
+
+            H_LS += pref * coeff_ls * (Ap' * Aq)
+            H_g  += pref * 1im * Gamma * (Ap' * Aq)
+        end
+    end
+
+    H_LS = 0.5 * (H_LS + H_LS')
+    return H_LS, H_g
+end
+
+
+#=
 function redfield_parts(m::TwoBathModel)
-    H = system_hamiltonian(m.sys)
+     H = system_hamiltonian(m.sys)
     d = size(H, 1)
     r, _, _ = mixing_angles(m.sys)
     pq = (:alpha, :beta)
@@ -261,12 +322,13 @@ function redfield_Heff(m::TwoBathModel)
 
     H_LS = 0.5 * (H_LS + H_LS')
     return H_LS, H_g
-end
+end=#
 
 """
 Redfield Liouvillian pieces (eq. 95): dissipator superoperator and Lamb shift H_LS.
 Returns (L_diss, H_LS).
 """
+#=
 function redfield_parts(m::TwoBathModel, ind_bath::Int)
     H = system_hamiltonian(m.sys)
     d = size(H, 1)
@@ -303,10 +365,10 @@ function redfield_parts(m::TwoBathModel, ind_bath::Int)
 
     H_LS = 0.5 * (H_LS + H_LS')
     return L_diss, H_LS
-end
+end=#
 
 function redfield_parts_TwistedBoundary(m::TwoBathModel, t::Float64; scale::Float64=1.0)
-    H = system_hamiltonian(m.sys)
+    _, H = system_hamiltonian(m.sys)
     d = size(H, 1)
     r, _, _ = mixing_angles(m.sys)
     pq = (:alpha, :beta)
@@ -367,7 +429,7 @@ end
 
 
 function redfield_parts_TwistedBoundary(m::TwoBathModel; scale::Float64=1.0)
-    H = system_hamiltonian(m.sys)
+    _, H = system_hamiltonian(m.sys)
     d = size(H, 1)
     r, _, _ = mixing_angles(m.sys)
     pq = (:alpha, :beta)
@@ -437,7 +499,7 @@ function redfield_parts_TwistedBoundary(m::TwoBathModel; scale::Float64=1.0)
 end
 
 function redfield_Heff_TwistedBoundary(m::TwoBathModel; scale::Float64=1.0)
-    H = system_hamiltonian(m.sys)
+    _, H = system_hamiltonian(m.sys)
     d = size(H, 1)
     r, _, _ = mixing_angles(m.sys)
     pq = (:alpha, :beta)
@@ -499,6 +561,39 @@ function redfield_Heff_TwistedBoundary(m::TwoBathModel; scale::Float64=1.0)
 end
 
 function normalgksl_parts(m::TwoBathModel)
+    _, H = system_hamiltonian(m.sys)
+    d = size(H, 1)
+
+    L_diss = zeros(C64, d^2, d^2)
+    H_LS = zeros(C64, d, d)
+
+    for (site, bath) in bath_site_pairs(m)
+        ops = coupling_ops_by_frequency(m.sys, site)
+        freqs = frequency_list(ops)
+
+        for p in majorana_channels(), q in majorana_channels(), w in freqs
+            Ap = ops[(p, w)]
+            Aq = ops[(q, w)]   # secular approximation: keep only w = wp
+
+            pref = (p == q) ? -1.0 : 1.0
+            Gamma, coeff_ls = redfield_coefficients_from_bath(bath, p, q, w, w)
+
+            L_diss += -2pref * Gamma * (
+                spost(Ap', d) * spre(Aq, d)
+                - 0.5 * spre(Ap' * Aq, d)
+                - 0.5 * spost(Ap' * Aq, d)
+            )
+
+            H_LS += pref * coeff_ls * (Ap' * Aq)
+        end
+    end
+
+    H_LS = 0.5 * (H_LS + H_LS')
+    return L_diss, H_LS
+end
+
+#=
+function normalgksl_parts(m::TwoBathModel)
     H = system_hamiltonian(m.sys)
     d = size(H, 1)
     r, _, _ = mixing_angles(m.sys)
@@ -534,10 +629,10 @@ function normalgksl_parts(m::TwoBathModel)
 
     H_LS = 0.5 * (H_LS + H_LS')
     return L_diss, H_LS
-end
+end=#
 
 function normalgksl_parts(m::TwoBathModel, ind_bath::Int)
-    H = system_hamiltonian(m.sys)
+    _, H = system_hamiltonian(m.sys)
     d = size(H, 1)
     r, _, _ = mixing_angles(m.sys)
     pq = (:alpha, :beta)
@@ -578,7 +673,7 @@ end
 Redfield Liouvillian (eq. 95) for the two-bath model.
 """
 function redfield_liouvillian(m::TwoBathModel)
-    H = system_hamiltonian(m.sys)
+    _, H = system_hamiltonian(m.sys)
     d = size(H, 1)
     L_diss, H_LS = redfield_parts(m)
     return commutator_super(H + H_LS) + L_diss
@@ -589,7 +684,7 @@ Redfield Liouvillian (eq. 95) for the two-bath model.
 """
 
 function redfield_liouvillian_TwistedBoundary(m::TwoBathModel, ts::Vector{Float64} = collect(0.0:0.02:2.0); scale::Float64=1.0)
-    H = system_hamiltonian(m.sys)
+    _, H = system_hamiltonian(m.sys)
     #ts = collect(0.0:0.02:2.0)  # Example time points for the twist
     L_diss = Matrix{C64}[]
     H_LS = Matrix{C64}[]
@@ -602,7 +697,7 @@ function redfield_liouvillian_TwistedBoundary(m::TwoBathModel, ts::Vector{Float6
 end
 
 function periodic_steady_state_td(m::TwoBathModel; Nt::Int = 400, scale::Float64=1.0)
-    H = system_hamiltonian(m.sys)
+    _, H = system_hamiltonian(m.sys)
     d = size(H, 1)
 
     Δμ = m.bath2.μ - m.bath1.μ
@@ -650,7 +745,7 @@ end
 
 
 function normalgksl_liouvillian(m::TwoBathModel)
-    H = system_hamiltonian(m.sys)
+    _, H = system_hamiltonian(m.sys)
     L_diss, H_LS = normalgksl_parts(m)
     return commutator_super(H + H_LS) + L_diss
 end
