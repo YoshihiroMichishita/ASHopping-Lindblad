@@ -40,33 +40,27 @@ function nr_jumps_by_bath(m::TwoBathModel)
     pidx = majorana_channel_index()
     lfac = nr_lfac()
 
-    jumps_by_site = Dict{Tuple{Int, Int}, Vector{Matrix{C64}}}()
+    jumps_by_site = Dict{Int, Vector{Matrix{C64}}}()
 
-    for site in 1:m.sys.n_sites
+    for (bathind, site) in enumerate((1, m.sys.n_sites))
         ops = coupling_ops_by_frequency(m.sys, site)
         freqs = frequency_list(ops)
-        for bath in (1, 2)
-            if bath == 1
-                bath_obj = m.bath1
-            else
-                bath_obj = m.bath2
-            end
-            jumps = Matrix{C64}[]
+        bath = bath_by_index(m, bathind)
+        jumps = Matrix{C64}[]
 
-            for p in pset
-                J = zero(ops[(pset[1], freqs[1])])
+        for p in pset
+            J = zero(ops[(pset[1], freqs[1])])
 
-                for w in freqs
-                    sqg = gammahat_sqrt(bath_obj, w)
-                    for q in pset
-                        J += sqg[pidx[p], pidx[q]] * lfac[q] * ops[(q, w)]
-                    end
+            for w in freqs
+                sqg = gammahat_sqrt(bath, w)
+                for q in pset
+                    J += sqg[pidx[p], pidx[q]] * lfac[q] * ops[(q, w)]
                 end
-
-                push!(jumps, J)
             end
-            jumps_by_site[(bath, site)] = jumps
+
+            push!(jumps, J)
         end
+        jumps_by_site[bathind] = jumps
     end
 
     return jumps_by_site
@@ -131,7 +125,7 @@ function site_gain_loss_bath(m::TwoBathModel, rho::Matrix{C64}; method::Symbol =
                 n_i = n_ops[site]
                 nbar_i = nbar_ops[site]
 
-                for J in jumps_by_bath[(bathind, site)]
+                for J in jumps_by_bath[bathind]
                     gain_J = n_i    * J * nbar_i
                     loss_J = nbar_i * J * n_i
 
@@ -165,6 +159,39 @@ function site_gain_loss_bath(m::TwoBathModel, rho::Matrix{C64}; method::Symbol =
     end
 end
 
+function site_net_bath(m::TwoBathModel, rho::Matrix{C64}; method::Symbol = :redfield)
+    results = Dict{Tuple{Int, Int}, Float64}()
+
+    if method == :redfield
+        for bathind in 1:2
+            L_diss, _ = redfield_parts(m, bathind)
+            net_site = dissipative_site_net_from_liouvillian(L_diss, rho, m.sys)
+
+            for site in 1:m.sys.n_sites
+                results[(bathind, site)] = net_site[site]
+            end
+        end
+
+        return results
+
+    elseif method == :nr
+        Ls = nr_gksl_liouvillian_diss(m)
+
+        for bathind in 1:2
+            net_site = dissipative_site_net_from_liouvillian(Ls[bathind], rho, m.sys)
+
+            for site in 1:m.sys.n_sites
+                results[(bathind, site)] = net_site[site]
+            end
+        end
+
+        return results
+
+    else
+        error("method must be :redfield or :nr")
+    end
+end
+
 function total_site_gain_loss(results::Dict, nsites_sys::Int)
     gain = zeros(Float64, nsites_sys)
     loss = zeros(Float64, nsites_sys)
@@ -190,6 +217,18 @@ function dissipative_site_net_from_liouvillian(L_diss::Matrix{C64}, rho::Matrix{
 
     for i in 1:length(n_ops)
         net[i] = real(tr(n_ops[i] * drho))
+    end
+
+    return net
+end
+
+function total_site_net(results::Dict, nsites_sys::Int)
+    net = zeros(Float64, nsites_sys)
+
+    for site in 1:nsites_sys
+        for bathind in 1:2
+            net[site] += results[(bathind, site)]
+        end
     end
 
     return net

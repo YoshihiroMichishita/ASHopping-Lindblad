@@ -11,11 +11,14 @@ function continuity_residuals(net, j)
 
     for i in 1:n
         if i == 1
-            res[i] = net[i] - j[i]
+            #res[i] = net[i] - j[i]
+            res[i] = net[i] + j[i]
         elseif i == n
-            res[i] = net[i] + j[i-1]
+            #res[i] = net[i] + j[i-1]
+            res[i] = net[i] - j[i-1]
         else
-            res[i] = net[i] - j[i] + j[i-1]
+            #res[i] = net[i] - j[i] + j[i-1]
+            res[i] = net[i] + j[i] - j[i-1]
         end
     end
 
@@ -94,8 +97,8 @@ end
         println("Redfield net by site: $(net_red)")
         println("NR net by site: $(net_nr)")
 
-        @test all(abs(net_red[i]) < tol for i in 1:sys.n_sites)
-        @test all(abs(net_nr[i])  < tol for i in 1:sys.n_sites)
+        @test all(abs(net_red[i]) < tol for i in [1,sys.n_sites])
+        @test all(abs(net_nr[i])  < tol for i in [1,sys.n_sites])
     end
 
     @testset "Current expectation" begin
@@ -192,7 +195,7 @@ end
         @test abs(j_gksl + sum([(gl_gksl[(1,site)][3]+gl_gksl[(2,site)][3]) for site in 1:m.sys.n_sites])) < tol
     end=#
 end
-#=
+
 @testset "Non-equilibrium" begin
     μ = 0.8
     t = 1.0
@@ -212,6 +215,33 @@ end
     #rho_td = gksl.steady_state_tb(m; scale=scale)
     #rho_td_nr = gksl.steady_state_tb_nr(m; scale=scale)
 
+    @testset "Current expectation" begin
+        _, H_LS_red  = gksl.redfield_parts(m)
+        _, H_LS_gksl = gksl.normalgksl_parts(m)
+        _, H_LS_nr   = gksl.nr_parts_from_redfield(m)
+
+        j_red  = gksl.current_expectation_sites(rho_red,  sys, H_LS_red)
+        j_gksl = gksl.current_expectation_sites(rho_gksl, sys, H_LS_gksl)
+        j_nr   = gksl.current_expectation_sites(rho_nr,   sys, H_LS_nr)
+
+        println("Current expectation test (muL=$( -μ ), muR=$(μ), omega=$(ω))")
+        println("tolerance = $(tol)")
+        println("Redfield currents (right-to-left positive): $(j_red)")
+        println("GKSL currents (right-to-left positive): $(j_gksl)")
+        println("NR currents (right-to-left positive): $(j_nr)")
+
+        # non-equilibriumなので少なくともどこかの bond で流れがある
+        @test maximum(abs.(j_red)) > tol
+        @test maximum(abs.(j_nr))  > tol
+
+        # steady state では全 bond current が等しい
+        for b in 1:(length(j_red)-1)
+            @test abs(j_red[b+1] - j_red[b]) < tol
+            @test abs(j_nr[b+1]  - j_nr[b])  < tol
+        end
+    end
+
+    #=
     @testset "Current expectation" begin
         _, H_LS = gksl.redfield_parts(m)
         _, H_LS_gksl = gksl.normalgksl_parts(m)
@@ -237,8 +267,71 @@ end
         #@test abs(j_td) > tol
         @test abs(j_gksl) < tol
         #@test abs(j_td_nr) > tol
+    end=#
+
+    @testset "gain-loss-current consistency" begin
+        _, H_LS_red = gksl.redfield_parts(m)
+        _, H_LS_nr  = gksl.nr_parts_from_redfield(m)
+        
+        net_red_by_bath = gksl.site_net_bath(m, rho_red; method=:redfield)
+        net_nr_by_bath  = gksl.site_net_bath(m, rho_nr;  method=:nr)
+
+        net_red = gksl.total_site_net(net_red_by_bath, sys.n_sites)
+        net_nr  = gksl.total_site_net(net_nr_by_bath,  sys.n_sites)
+
+        j_red = gksl.current_expectation_sites(rho_red, sys, H_LS_red)
+        j_nr  = gksl.current_expectation_sites(rho_nr,  sys, H_LS_nr)
+
+        res_red = continuity_residuals(net_red, j_red)
+        res_nr  = continuity_residuals(net_nr,  j_nr)
+        
+        #=
+        _, H_LS_red = gksl.redfield_parts(m)
+        _, H_LS_nr  = gksl.nr_parts_from_redfield(m)
+
+        gl_red = gksl.site_gain_loss_bath(m, rho_red; method=:redfield)
+        gl_nr  = gksl.site_gain_loss_bath(m, rho_nr;  method=:nr)
+
+        gain_red, loss_red, net_red = gksl.total_site_gain_loss(gl_red, sys.n_sites)
+        gain_nr,  loss_nr,  net_nr  = gksl.total_site_gain_loss(gl_nr,  sys.n_sites)
+
+        j_red = gksl.current_expectation_sites(rho_red, sys, H_LS_red)
+        j_nr  = gksl.current_expectation_sites(rho_nr,  sys, H_LS_nr)
+
+        res_red = continuity_residuals(net_red, j_red)
+        res_nr  = continuity_residuals(net_nr,  j_nr)=#
+
+        println("Gain-loss-current consistency test (muL=$( -μ ), muR=$(μ), omega=$(ω))")
+        println("tolerance = $(tol)")
+
+        #println("Redfield gain by site: $(gain_red)")
+        #println("Redfield loss by site: $(loss_red)")
+        println("Redfield net by site:  $(net_red)")
+        println("Redfield currents:     $(j_red)")
+        println("Redfield continuity residuals: $(res_red)")
+
+        #println("NR gain by site: $(gain_nr)")
+        #println("NR loss by site: $(loss_nr)")
+        println("NR net by site:  $(net_nr)")
+        println("NR currents:     $(j_nr)")
+        println("NR continuity residuals: $(res_nr)")
+
+        # 全粒子数保存
+        @test abs(sum(net_red)) < tol
+        @test abs(sum(net_nr))  < tol
+
+        # 各 site の連続の式
+        @test all(abs.(res_red) .< tol)
+        @test all(abs.(res_nr)  .< tol)
+
+        # steady state では bond current は一様
+        for b in 1:(length(j_red)-1)
+            @test abs(j_red[b+1] - j_red[b]) < tol
+            @test abs(j_nr[b+1]  - j_nr[b])  < tol
+        end
     end
 
+    #=
     @testset "gain-loss-current consistency" begin
         _, H_LS = gksl.redfield_parts(m)
         _, H_LS_gksl = gksl.normalgksl_parts(m)
@@ -273,7 +366,7 @@ end
         @test abs(j_red + (gl_red[(1,1)][3]+gl_red[(2,1)][3])) < tol
         @test abs(j_nr + (gl_nr[(1,1)][3]+gl_nr[(2,1)][3])) < tol
         #@test abs(j_red_TB + (gl_red_TB[(1,1)][3]+gl_red_TB[(2,1)][3])) < tol
-    end
+    end=#
 
     #=
     @testset "TwistedBoundary time-dependent periodic steady state" begin
@@ -342,4 +435,4 @@ end
     end=#
 
 
-end=#
+end
