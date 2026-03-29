@@ -3,7 +3,7 @@
 #include("redfield.jl")
 #include("NathanRudner.jl")
 
-function site_ops(p)
+function site_ops(p::SystemParams)
     # 3サイト版なら fermion_ops_3site() を呼ぶ
     # 将来は generic fermion_ops_chain(nsites(p)) に差し替えたい
     if p.n_sites == 2
@@ -19,7 +19,7 @@ function site_ops(p)
     end
 end
 
-function local_number_projectors(p)
+function local_number_projectors(p::SystemParams)
     c_ops, cd_ops = site_ops(p)
 
     n_ops = Matrix{C64}[]
@@ -309,6 +309,11 @@ function redfield_gain_loss(m::TwoBathModel, bathind::Int, rho::Matrix{C64})
     return Gain_site, Loss_site
 end=#
 
+function redfield_TB_net(m::TwoBathModel, rho::Matrix{C64}; scale::Float64 = 1.0)
+    L_diss_TB, _ = redfield_parts_TwistedBoundary(m; scale=scale)
+    return dissipative_site_net_from_liouvillian(L_diss_TB, rho, m.sys)
+end
+#=
 function redfield_TB_net(m::TwoBathModel, rho::Matrix{C64}; scale::Float64=1.0)
     _, H = system_hamiltonian(m.sys)
     d = size(H, 1)
@@ -331,62 +336,8 @@ function redfield_TB_net(m::TwoBathModel, rho::Matrix{C64}; scale::Float64=1.0)
         n_op = gain_op * loss_op
         net_site[site] += real(tr(n_op * reshape(L_diss_TB * vec(rho), d, d))) # TB dissipator contribution to net gain-loss
     end
-    #ops = coupling_ops_by_frequency(m.sys, bathind)
-    #=
-    for p in pq, q in pq, sgn_w in (+1, -1), sgn_wp in (+1, -1)
-        w = sgn_w * r
-        wp = sgn_wp * r
-        Ap = ops[2][(p, sgn_w)]   # c_p[w]
-        Aq = ops[1][(q, sgn_wp)]   # c_q[w']
-        pref = (p == q) ? 1.0 : -1.0  # -(1 - 2δ_pq)
-
-        gamma_w, eta_w = gamma_eta_from_phi_TwistedBoundary(m.bath2, m.bath1, q, p, w)
-        gamma_wp, eta_wp = gamma_eta_from_phi_TwistedBoundary(m.bath1, m.bath2, p, q, wp)
-
-        Gamma = 0.5 * (gamma_w + gamma_wp) - 1im * (eta_w - eta_wp)
-
-        # dissipator term: Aq ρ Ap† - 1/2 {Ap† Aq, ρ}
-        for site in (1, 2)
-            loss_op = loss_ops[site]
-            gain_op = gain_ops[site]
-            n_op = gain_op * loss_op
-            nbar_op = loss_op * gain_op
-            Aq_gain = n_op * Aq * nbar_op
-            Ap_gain = n_op * Ap * nbar_op
-            Aq_loss = nbar_op * Aq * n_op
-            Ap_loss = nbar_op * Ap * n_op
-
-            Gain_site[site] += 2scale*real(pref * Gamma * tr(Aq_gain * rho * Ap_gain'))
-            Loss_site[site] += 2scale*real(pref * Gamma * tr(Aq_loss * rho * Ap_loss'))
-        end
-
-        Ap = ops[1][(p, sgn_w)]   # c_p[w]
-        Aq = ops[2][(q, sgn_wp)]   # c_q[w']
-        pref = (p == q) ? 1.0 : -1.0  # -(1 - 2δ_pq)
-
-        gamma_w, eta_w = gamma_eta_from_phi_TwistedBoundary(m.bath1, m.bath2, q, p, w)
-        gamma_wp, eta_wp = gamma_eta_from_phi_TwistedBoundary(m.bath2, m.bath1, p, q, wp)
-
-        Gamma = 0.5 * (gamma_w + gamma_wp) - 1im * (eta_w - eta_wp)
-
-        # dissipator term: Aq ρ Ap† - 1/2 {Ap† Aq, ρ}
-        for site in (1, 2)
-            loss_op = loss_ops[site]
-            gain_op = gain_ops[site]
-            n_op = gain_op * loss_op
-            nbar_op = loss_op * gain_op
-            Aq_gain = n_op * Aq * nbar_op
-            Ap_gain = n_op * Ap * nbar_op
-            Aq_loss = nbar_op * Aq * n_op
-            Ap_loss = nbar_op * Ap * n_op
-            
-            Gain_site[site] += 2scale*real(pref * Gamma * tr(Aq_gain * rho * Ap_gain'))
-            Loss_site[site] += 2scale*real(pref * Gamma * tr(Aq_loss * rho * Ap_loss'))
-        end
-    end=#
-    #return Gain_site, Loss_site
     return net_site
-end
+end=#
 
 #=
 function site_gain_loss_bath(m::TwoBathModel, rho::Matrix{C64}; method::Symbol = :gksl, scale::Float64 = 1.0)

@@ -3,7 +3,7 @@ using LinearAlgebra
 import ASHoppingGKSL as gksl
 
 n_sites = 3
-scale = 0.5
+scale = 1.0
 
 function continuity_residuals(net, j)
     n = length(net)
@@ -40,8 +40,8 @@ end
     bath2 = gksl.make_bath(Gamma = Γ, tau_c = τc, beta = β, mu = μ)
     m = gksl.TwoBathModel(sys, bath1, bath2)
     rho_red, rho_nr, _ = gksl.steady_states(m)
-    #rho_td = gksl.steady_state_tb(m; scale=scale)
-    #rho_td_nr = gksl.steady_state_tb_nr(m; scale=scale)
+    rho_td = gksl.steady_state_tb(m; scale=scale)
+    rho_td_nr = gksl.steady_state_tb_nr(m; scale=scale)
     #rho_td = gksl.steady_state_tb_ncondition(m, 1.0)
     @testset "Is steady state equilibrium" begin
         tol2 = 1e-4
@@ -53,9 +53,13 @@ end
         println("Thermal state: $([thermal_eq[i,i] for i in 1:size(thermal_eq, 1)])")
         println("Redfield steady state: $([rho_red[i,i] for i in 1:size(rho_red, 1)])")
         println("GKSL steady state:    $([rho_nr[i,i] for i in 1:size(rho_nr, 1)])")
+        println("TwistedBoundary steady state: $([rho_td[i,i] for i in 1:size(rho_td, 1)])")
+        println("TwistedBoundary NR steady state: $([rho_td_nr[i,i] for i in 1:size(rho_td_nr, 1)])")
         println(real.(rho_red - thermal_eq))
         @test norm(rho_red - thermal_eq) < tol2
         @test norm(rho_nr - thermal_eq) < tol2
+        @test norm(rho_td - thermal_eq) < tol2
+        @test norm(rho_td_nr - thermal_eq) < tol2
     end
     #=
     @testset "Twisted boundary condition steady state" begin
@@ -69,44 +73,38 @@ end
         @test norm(rho_td - thermal_eq) < tol2
         @test norm(rho_td_nr - thermal_eq) < tol2
     end=#
-    #=
-    @testset "Gain-Loss balance" begin
-        gl_gksl = gksl.site_gain_loss_bath(m, rho_nr; method=:nr)
-        gl_red = gksl.site_gain_loss_bath(m, rho_red; method=:redfield)
-
-        println("Gain-Loss net flow test (muL=$( -μ ), muR=$(μ), omega=$(ω))")
-        println("tolerance = $(tol)")
-        println("Redfield gain: (bath, site); (1,1)=$(gl_red[(1,1)][1]), (1,2)=$(gl_red[(1,2)][1]), (2,1)=$(gl_red[(2,1)][1]), (2,2)=$(gl_red[(2,2)][1])")
-        println("GKSL gain:    (bath, site); (1,1)=$(gl_gksl[(1,1)][1]), (1,2)=$(gl_gksl[(1,2)][1]), (2,1)=$(gl_gksl[(2,1)][1]), (2,2)=$(gl_gksl[(2,2)][1])")
-        println("Redfield loss: (bath, site); (1,1)=$(gl_red[(1,1)][2]), (1,2)=$(gl_red[(1,2)][2]), (2,1)=$(gl_red[(2,1)][2]), (2,2)=$(gl_red[(2,2)][2])")
-        println("GKSL loss:    (bath, site); (1,1)=$(gl_gksl[(1,1)][2]), (1,2)=$(gl_gksl[(1,2)][2]), (2,1)=$(gl_gksl[(2,1)][2]), (2,2)=$(gl_gksl[(2,2)][2])")
-        println("Redfield net: (bath, site); (1,1)=$(gl_red[(1,1)][3]), (1,2)=$(gl_red[(1,2)][3]), (2,1)=$(gl_red[(2,1)][3]), (2,2)=$(gl_red[(2,2)][3])")
-        println("GKSL net:    (bath, site); (1,1)=$(gl_gksl[(1,1)][3]), (1,2)=$(gl_gksl[(1,2)][3]), (2,1)=$(gl_gksl[(2,1)][3]), (2,2)=$(gl_gksl[(2,2)][3])")
-
-        @test all(abs(gl_red[(bath,site)][3]) < tol for site in 1:m.sys.n_sites, bath in (1,2))
-        @test all(abs(gl_gksl[(bath,site)][3]) < tol for site in 1:m.sys.n_sites, bath in (1,2))
-    end=#
 
     @testset "Gain-Loss balance" begin
         gl_red = gksl.site_gain_loss_bath(m, rho_red; method=:redfield)
         gl_nr  = gksl.site_gain_loss_bath(m, rho_nr;  method=:nr)
 
+
         _, _, net_red = gksl.total_site_gain_loss(gl_red, sys.n_sites)
         _, _, net_nr  = gksl.total_site_gain_loss(gl_nr,  sys.n_sites)
 
+        net_red_tb = gksl.redfield_TB_net(m, rho_red; scale=scale)
+        net_nr_tb  = gksl.redfield_TB_net(m, rho_nr; scale=scale)
+
         println("Redfield net by site: $(net_red)")
         println("NR net by site: $(net_nr)")
+        println("Redfield TB net by site: $(net_red_tb)")
+        println("NR TB net by site: $(net_nr_tb)")
 
         @test all(abs(net_red[i]) < tol for i in [1,sys.n_sites])
         @test all(abs(net_nr[i])  < tol for i in [1,sys.n_sites])
+        @test all(abs(net_red_tb[i]) < tol for i in [1,sys.n_sites])
+        @test all(abs(net_nr_tb[i])  < tol for i in [1,sys.n_sites])
     end
 
     @testset "Current expectation" begin
         L_diss_eq, H_LS_eq = gksl.redfield_parts(m)
         _, H_LS_gksl_eq = gksl.normalgksl_parts(m)
+        _, H_LS_tb = gksl.redfield_parts_TwistedBoundary(m; scale=scale)
         j_eq = gksl.current_expectation(rho_red, sys, H_LS_eq)
         j_eq_ngksl = gksl.current_expectation(rho_nr, sys, H_LS_gksl_eq)
         j_eq_gksl = gksl.current_expectation(rho_nr, sys, H_LS_eq)
+        j_eq_tb = gksl.current_expectation(rho_td, sys, H_LS_eq+H_LS_tb)
+        j_eq_nr_tb = gksl.current_expectation(rho_td_nr, sys, H_LS_eq+H_LS_tb)
         J_red = gksl.current_expectation(rho_red, sys)
         J_nr = gksl.current_expectation(rho_nr, sys)
         println("Current expectation test (muL=$( -μ ), muR=$(μ), omega=$(ω))")
@@ -114,22 +112,19 @@ end
         println("j_eq")
         println("Redfield current: $(J_red)")
         println("GKSL current:    $(J_nr)")
+        println("Redfield current with LS: $(j_eq)")
+        println("GKSL current with LS:    $(j_eq_gksl)")
+        println("GKSL current with normalgksl LS:    $(j_eq_ngksl)")
+        println("TwistedBoundary Redfield current with LS: $(j_eq_tb)")
+        println("TwistedBoundary GKSL current with normalgksl LS: $(j_eq_nr_tb)")
         @test abs(J_red) < tol
         @test abs(J_nr) < tol
+        @test abs(j_eq) < tol
+        @test abs(j_eq_gksl) < tol
+        @test abs(j_eq_ngksl) < tol
+        @test abs(j_eq_tb) < tol
+        @test abs(j_eq_nr_tb) < tol
     end
-
-    #=
-    @testset "Current expectation under TBC" begin
-        #rho_td = gksl.steady_state_tb_ncondition(m, 1.0)
-        L_diss_eq, H_LS_eq = gksl.redfield_parts_TwistedBoundary(m)
-        j_eq = gksl.current_expectation(rho_td, sys, H_LS_eq)
-        tol2 = 1e-4
-        println("Twisted boundary condition steady state test (muL=$( -μ ), muR=$(μ), omega=$(ω))")
-        thermal_eq = gksl.thermal_grand_canonical_state(gksl.system_hamiltonian(sys)[2], β)
-        println("Thermal state: $([thermal_eq[i,i] for i in 1:size(thermal_eq, 1)])")
-        println("Redfield TD steady state: $([rho_td[i,i] for i in 1:size(rho_td, 1)])")
-        @test norm(rho_td - thermal_eq) < tol2
-    end=#
 
     @testset "gain-loss-current consistency" begin
         _, H_LS_red = gksl.redfield_parts(m)
@@ -173,27 +168,6 @@ end
             @test abs(j_nr[b+1]  - j_nr[b])  < tol
         end
     end
-    #=
-    @testset "gain-loss-current consistency" begin
-        gl_red = gksl.site_gain_loss_bath(m, rho_red; method=:redfield)
-        j_red = gksl.current_expectation_sites(rho_red, sys)
-        gl_gksl = gksl.site_gain_loss_bath(m, rho_nr; method=:nr)
-        j_gksl = gksl.current_expectation_sites(rho_nr, sys)
-        println("Gain-loss-current consistency test (muL=$( -μ ), muR=$(μ), omega=$(ω))")
-        println("tolerance = $(tol)")
-        println("Redfield gain: (site); (1)=$(gl_red[(1,1)][1] + gl_red[(2,1)][1]), (2)=$(gl_red[(1,2)][1]+gl_red[(2,2)][1])")
-        println("GKSL gain:    (site); (1)=$(gl_gksl[(1,1)][1] + gl_gksl[(2,1)][1]), (2)=$(gl_gksl[(1,2)][1]+gl_gksl[(2,2)][1])")
-        println("Redfield loss: (site); (1)=$(gl_red[(1,1)][2]+gl_red[(2,1)][2]), (2)=$(gl_red[(1,2)][2]+gl_red[(2,2)][2])")
-        println("GKSL loss:    (site); (1)=$(gl_gksl[(1,1)][2]+gl_gksl[(2,1)][2]), (2)=$(gl_gksl[(1,2)][2]+gl_gksl[(2,2)][2])")
-        println("Redfield net: (site); (1)=$(gl_red[(1,1)][3]+gl_red[(2,1)][3]), (2)=$(gl_red[(1,2)][3]+gl_red[(2,2)][3])")
-        println("GKSL net:    (site); (1)=$(gl_gksl[(1,1)][3]+gl_gksl[(2,1)][3]), (2)=$(gl_gksl[(1,2)][3]+gl_gksl[(2,2)][3])")
-        println("Redfield current: $(j_red)")
-        println("GKSL current:    $(j_gksl)")
-        @test abs(sum([(gl_red[(1,site)][3]+gl_red[(2,site)][3]) for site in 1:m.sys.n_sites])) < tol
-        @test abs(sum([(gl_gksl[(1,site)][3]+gl_gksl[(2,site)][3]) for site in 1:m.sys.n_sites])) < tol
-        @test abs(j_red + sum([(gl_red[(1,site)][3]+gl_red[(2,site)][3]) for site in 1:m.sys.n_sites])) < tol
-        @test abs(j_gksl + sum([(gl_gksl[(1,site)][3]+gl_gksl[(2,site)][3]) for site in 1:m.sys.n_sites])) < tol
-    end=#
 end
 
 @testset "Non-equilibrium" begin
@@ -433,6 +407,86 @@ end
         @test abs(dn1_avg + dn2_avg) < tol_period
         @test abs(j_avg + dn1_avg) < tol_period
     end=#
+
+    @testset "TwistedBoundary time-dependent periodic steady state" begin
+        #tol_period = 1e-6
+
+        Δμ = bath2.μ - bath1.μ
+        T = 2π / abs(Δμ)
+        Nt = 1000
+
+        rho0, ts, Hls_list, Ldiss_list = gksl.periodic_steady_state_td(m; Nt=Nt, scale=scale)
+
+        staticL = gksl.redfield_liouvillian(m)
+        dt = ts[2] - ts[1]
+        tol_period = 2dt
+
+        rhoT = gksl.propagate_one_period(rho0, staticL, Hls_list, Ldiss_list, dt)
+
+        println("TwistedBoundary periodic steady state test (muL=$( -μ ), muR=$(μ), omega=$(ω))")
+        println("period T = $(T)")
+        println("Nt = $(Nt), dt = $(dt)")
+        println("rho0 diag = $([real(rho0[i,i]) for i in 1:size(rho0,1)])")
+        println("rhoT diag = $([real(rhoT[i,i]) for i in 1:size(rhoT,1)])")
+        println("||rho(T)-rho(0)|| = $(norm(rhoT - rho0))")
+
+        @test norm(rhoT - rho0) < tol_period
+        @test abs(real(tr(rho0)) - 1.0) < tol_period
+        @test minimum(real(eigvals(Hermitian(rho0)))) > -tol_period
+    end
+    @testset "TwistedBoundary time-averaged continuity" begin
+        Nt = 1000
+        rho, ts, Hls_list, Ldiss_list = gksl.periodic_steady_state_td(m; Nt=Nt, scale=scale)
+
+        staticL = gksl.redfield_liouvillian(m)
+        L_diss_static, H_LS_static = gksl.redfield_parts(m)
+
+        dt = ts[2] - ts[1]
+        T = ts[end] - ts[1]
+        tol_period = 5dt
+
+        net_avg = zeros(Float64, sys.n_sites)
+        j_avg = zeros(Float64, sys.n_sites - 1)
+
+        rho_t = copy(rho)
+
+        for k in 1:length(Hls_list)
+            # total dissipative contribution at this time
+            L_diss_t = L_diss_static + Ldiss_list[k]
+            net_t = gksl.dissipative_site_net_from_liouvillian(L_diss_t, rho_t, sys)
+
+            # coherent current at this time
+            H_LS_t = H_LS_static + Hls_list[k]
+            j_t = gksl.current_expectation_sites(rho_t, sys, H_LS_t)
+
+            net_avg .+= net_t .* dt
+            j_avg .+= j_t .* dt
+
+            Lt = staticL + gksl.commutator_super(Hls_list[k]) + Ldiss_list[k]
+            rho_t = reshape(exp(dt * Lt) * vec(rho_t), size(rho_t)...)
+            rho_t = 0.5 * (rho_t + rho_t')
+            rho_t ./= real(tr(rho_t))
+        end
+
+        net_avg ./= T
+        j_avg ./= T
+
+        res_avg = continuity_residuals(net_avg, j_avg)
+
+        println("TwistedBoundary time-averaged continuity test (muL=$( -μ ), muR=$(μ), omega=$(ω))")
+        println("period T = $(T)")
+        println("time-averaged net by site = $(net_avg)")
+        println("time-averaged currents = $(j_avg)")
+        println("time-averaged continuity residuals = $(res_avg)")
+        println("tolerance = $(tol_period)")
+
+        @test abs(sum(net_avg)) < tol_period
+        @test all(abs.(res_avg) .< tol_period)
+
+        for b in 1:(length(j_avg)-1)
+            @test abs(j_avg[b+1] - j_avg[b]) < tol_period
+        end
+    end
 
 
 end

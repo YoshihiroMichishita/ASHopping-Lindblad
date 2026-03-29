@@ -422,7 +422,7 @@ function nr_gksl_liouvillian(m::TwoBathModel)
         end
     end
     return L
-end=#
+end
 
 function nr_gksl_liouvillian_TwistedBoundary(m::TwoBathModel; scale::Float64 = 1.0)
     _, H = system_hamiltonian(m.sys)
@@ -491,7 +491,69 @@ function nr_gksl_liouvillian_TwistedBoundary(m::TwoBathModel; scale::Float64 = 1
         L += lindblad_super(J)
     end
     return L
+end=#
+
+function nr_gksl_liouvillian_TwistedBoundary(m::TwoBathModel; scale::Float64 = 1.0)
+    _, H = system_hamiltonian(m.sys)
+    d = size(H, 1)
+
+    pset = majorana_channels()
+    pidx = majorana_channel_index()
+    lfac = nr_lfac()
+
+    ops_by_bath = tb_ops_by_bath(m)
+    freqs = tb_frequency_list(m)
+
+    Hls_total = zeros(C64, d, d)
+
+    # local Lamb shift
+    for bathind in 1:2
+        bath = bath_by_index(m, bathind)
+        ops = ops_by_bath[bathind]
+
+        Hls = zeros(C64, d, d)
+        for p in pset, q in pset, w in freqs, wp in freqs
+            Ap = ops[(p, w)]
+            Aq = ops[(q, wp)]
+            pref = (p == q) ? -1.0 : 1.0
+
+            gamma_w, eta_w   = gamma_eta_from_phi(bath, p, q, w)
+            gamma_wp, eta_wp = gamma_eta_from_phi(bath, p, q, wp)
+
+            Hls += pref * 0.5 * (eta_w + eta_wp) * (Ap' * Aq)
+        end
+
+        Hls_total += 0.5 * (Hls + Hls')
+    end
+
+    # cross Lamb shift
+    _, Hls_tb = redfield_parts_TwistedBoundary(m; scale=scale)
+    Hls_total += Hls_tb
+
+    L = commutator_super(H + Hls_total)
+
+    # TBC dissipator
+    jumps = Matrix{C64}[]
+    for p in pset, out_bath in 1:2
+        J = zeros(C64, d, d)
+        for w in freqs
+            sqg = gammahat_sqrt_TwistedBoundary(m, w; scale=scale)
+            for q in pset, in_bath in 1:2
+                J += sqg[(out_bath, in_bath)][pidx[p], pidx[q]] *
+                     lfac[q] *
+                     ops_by_bath[in_bath][(q, w)]
+            end
+        end
+        push!(jumps, J)
+    end
+
+    for J in jumps
+        L += lindblad_super(J)
+    end
+
+    return L
 end
+
 
 function nr_gksl_liouvillian_diss(m::TwoBathModel)
     _, H = system_hamiltonian(m.sys)
