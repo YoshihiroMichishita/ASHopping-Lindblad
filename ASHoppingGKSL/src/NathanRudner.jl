@@ -28,36 +28,18 @@ function gammahat_matrix(b::BathSpectrum, w::Float64)
         g21 g22
     ]
 end
+"""
+γ-matrix square root (eqs. 84-86, 100) at frequency w.
+"""
 
 function gammahat_sqrt(b::BathSpectrum, w::Float64)
     g = gammahat_matrix(b, w)
     eigvals, eigvecs = eigen(Hermitian(g))
-
-    # optional safeguard
-    #eigvals = max.(real.(eigvals), 0.0)
-
     sqrt_g = eigvecs * Diagonal(sqrt.(complex.(eigvals))) * eigvecs'
     return sqrt_g
 end
 
-"""
-γ-matrix square root (eqs. 84-86, 100) at frequency w.
-"""
-#=
-function gammahat_sqrt(b::BathSpectrum, w::Float64)
-    gamma = Phi_from_sigma(b, :alpha, :alpha, w) + Phi_from_sigma(b, :alpha, :alpha, w)'  # eq. (72)
-    gamma_p = Phi_from_sigma(b, :alpha, :beta, w) + Phi_from_sigma(b, :beta, :alpha, w)'  # eq. (73)
-    g = C64[gamma gamma_p; gamma_p' gamma]
-    eigvals, eigvecs = eigen(Hermitian(g))
-    sqrt_eigvals = sqrt.(complex.(eigvals))
-    sqrt_g = eigvecs * Diagonal(sqrt_eigvals) * eigvecs'
-    return sqrt_g
-end=#
-
-"""
-γ-matrix square root (eqs. 84-86, 100) at frequency w.
-"""
-
+#TODO:Dynamic版も作る
 function gammahat_sqrt_TwistedBoundary(m::TwoBathModel, w::Float64; scale::Float64=1.0)
     b1 = m.bath1
     b2 = m.bath2
