@@ -21,17 +21,23 @@ function drive_rates_pbc(p::ModelParams, ks::AbstractVector{<:Real})
 end
 
 function drive_rates_obc(p::ModelParams, U::AbstractMatrix{<:Complex})
+    return drive_rates_site(p, U; periodic = false)
+end
+
+function drive_rates_site(p::ModelParams, U::AbstractMatrix{<:Complex}; periodic::Bool)
     n_sites, n_modes = size(U)
     W = zeros(Float64, n_modes, n_modes)
+    n_bonds = periodic ? n_sites : (n_sites - 1)
     for from in 1:n_modes, to in 1:n_modes
         if from == to
             continue
         end
         forward = 0.0
         backward = 0.0
-        for i in 1:(n_sites - 1)
-            forward += abs2(conj(U[i + 1, to]) * U[i, from])
-            backward += abs2(conj(U[i, to]) * U[i + 1, from])
+        for i in 1:n_bonds
+            j = periodic && i == n_sites ? 1 : i + 1
+            forward += abs2(conj(U[j, to]) * U[i, from])
+            backward += abs2(conj(U[i, to]) * U[j, from])
         end
         W[from, to] = 2 * p.gamma_plus * forward + 2 * p.gamma_minus * backward
     end

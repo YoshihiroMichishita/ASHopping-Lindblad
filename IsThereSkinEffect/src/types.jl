@@ -47,4 +47,5 @@ struct SteadyStateResult
     density::Vector{Float64}
     mode_labels::Union{Nothing, Vector{Float64}}
     basis_transform::Matrix{ComplexF64}
+    drive_model::Symbol
 end

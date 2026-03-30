@@ -97,7 +97,32 @@ function steady_state(
 
     density = site_density(U, occupations)
     boundary = bc isa PBC ? :pbc : :obc
-    return SteadyStateResult(boundary, eps, occupations, density, labels, U)
+    drive_model = bc isa PBC ? :mode : :site
+    return SteadyStateResult(boundary, eps, occupations, density, labels, U, drive_model)
+end
+
+function steady_state_site_drive(
+    p::ModelParams,
+    bc::BoundaryCondition;
+    initial::Union{Nothing, AbstractVector{<:Real}} = nothing,
+    dt::Union{Nothing, Real} = nothing,
+    tol::Real = 1e-10,
+    max_steps::Int = 2_000_000,
+)
+    eps, U, labels = mode_basis(p, bc)
+    periodic = bc isa PBC
+    W = thermal_rates(eps, p.alpha, p.beta) + drive_rates_site(p, U; periodic = periodic)
+    init = initial === nothing ? thermal_reference_occupations(eps, p) : initial
+    occupations = solve_steady_mode_occupations(
+        W;
+        initial = init,
+        dt = dt,
+        tol = tol,
+        max_steps = max_steps,
+    )
+    density = site_density(U, occupations)
+    boundary = bc isa PBC ? :pbc : :obc
+    return SteadyStateResult(boundary, eps, occupations, density, labels, U, :site)
 end
 
 function compare_boundaries(
@@ -117,6 +142,33 @@ function compare_boundaries(
         max_steps = max_steps,
     )
     obc = steady_state(
+        p,
+        OBC();
+        initial = initial_obc,
+        dt = dt,
+        tol = tol,
+        max_steps = max_steps,
+    )
+    return (; pbc, obc)
+end
+
+function compare_boundaries_site_drive(
+    p::ModelParams;
+    initial_obc::Union{Nothing, AbstractVector{<:Real}} = nothing,
+    initial_pbc::Union{Nothing, AbstractVector{<:Real}} = nothing,
+    dt::Union{Nothing, Real} = nothing,
+    tol::Real = 1e-10,
+    max_steps::Int = 2_000_000,
+)
+    pbc = steady_state_site_drive(
+        p,
+        PBC();
+        initial = initial_pbc,
+        dt = dt,
+        tol = tol,
+        max_steps = max_steps,
+    )
+    obc = steady_state_site_drive(
         p,
         OBC();
         initial = initial_obc,
