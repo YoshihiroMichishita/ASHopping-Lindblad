@@ -1,124 +1,74 @@
-function site_density(U::AbstractMatrix{<:Complex}, occupations::AbstractVector{<:Real})
-    weights = abs2.(U)
-    density = weights * collect(Float64, occupations)
-    return real.(density)
+function site_density(C::AbstractMatrix{<:Complex})
+    return real.(diag(C))
 end
 
-function coherent_bond_currents(result::SteadyStateResult, p::ModelParams)
-    U = result.basis_transform
-    occ = result.occupations
-
-    if result.boundary == :pbc
-        currents = zeros(Float64, p.L)
-        for i in 1:p.L
-            j = i == p.L ? 1 : i + 1
-            correlator = 0.0 + 0.0im
-            for m in eachindex(occ)
-                correlator += conj(U[j, m]) * U[i, m] * occ[m]
-            end
-            currents[i] = 2 * tbar(p) * imag(correlator)
-        end
-        return currents
-    elseif result.boundary == :obc
-        currents = zeros(Float64, p.L - 1)
-        for i in 1:(p.L - 1)
-            correlator = 0.0 + 0.0im
-            for m in eachindex(occ)
-                correlator += conj(U[i + 1, m]) * U[i, m] * occ[m]
-            end
-            currents[i] = 2 * tbar(p) * imag(correlator)
-        end
-        return currents
-    else
-        error("unsupported boundary = $(result.boundary)")
-    end
-end
-
-function dissipative_fluxes(result::SteadyStateResult, p::ModelParams)
-    if result.drive_model != :site
-        error("dissipative_fluxes is only defined for site-drive steady states")
-    end
-
-    U = result.basis_transform
-    occ = result.occupations
-    periodic = result.boundary == :pbc
-    n_bonds = periodic ? p.L : (p.L - 1)
-    fluxes = zeros(Float64, n_bonds)
-
+function bond_currents(C::AbstractMatrix{<:Complex}, p::ModelParams, bc::BoundaryCondition)
+    n_bonds = bc isa PBC ? p.L : (p.L - 1)
+    currents = zeros(Float64, n_bonds)
     for i in 1:n_bonds
-        j = periodic && i == p.L ? 1 : i + 1
-        forward = 0.0
-        backward = 0.0
-        for from in eachindex(occ), to in eachindex(occ)
-            forward += abs2(conj(U[j, to]) * U[i, from]) * occ[from] * (1 - occ[to])
-            backward += abs2(conj(U[i, to]) * U[j, from]) * occ[from] * (1 - occ[to])
-        end
-        fluxes[i] = 2 * p.gamma_plus * forward - 2 * p.gamma_minus * backward
+        j = bc isa PBC && i == p.L ? 1 : i + 1
+        currents[i] = 2 * tbar(p) * imag(C[i, j])
     end
-
-    return fluxes
+    return currents
 end
 
-function dissipative_flux_expectation(result::SteadyStateResult, p::ModelParams)
-    fluxes = dissipative_fluxes(result, p)
-    return sum(fluxes) / length(fluxes)
+function bond_currents(result::SteadyStateResult)
+    return result.currents
 end
 
-function bond_currents(result::SteadyStateResult, p::ModelParams)
-    if result.boundary == :pbc
-        isnothing(result.mode_labels) && error("PBC results must store mode labels")
-        ks = result.mode_labels
-        avg_current = 2 * tbar(p) * sum(sin.(ks) .* result.occupations) / p.L
-        return fill(avg_current, p.L)
-    elseif result.boundary == :obc
-        if result.drive_model == :site
-            return dissipative_fluxes(result, p)
-        end
+function current_expectation(result::SteadyStateResult)
+    return sum(result.currents) / length(result.currents)
+end
 
-        U = result.basis_transform
-        occ = result.occupations
-        currents = zeros(Float64, p.L - 1)
-        for i in 1:(p.L - 1)
-            forward = 0.0
-            backward = 0.0
-            for from in eachindex(occ), to in eachindex(occ)
-                forward += abs2(conj(U[i + 1, to]) * U[i, from]) * occ[from] * (1 - occ[to])
-                backward += abs2(conj(U[i, to]) * U[i + 1, from]) * occ[from] * (1 - occ[to])
-            end
-            currents[i] = 2 * p.gamma_plus * forward - 2 * p.gamma_minus * backward
+function dissipative_site_net(
+    C::AbstractMatrix{<:Complex},
+    gamma_gain::AbstractMatrix{<:Complex},
+    gamma_loss::AbstractMatrix{<:Complex},
+)
+    gamma_total = gamma_gain + gamma_loss
+    dC_diss = 2 * gamma_gain - (gamma_total * C + C * gamma_total)
+    return real.(diag(dC_diss))
+end
+
+function dissipative_site_net(result::SteadyStateResult)
+    return dissipative_site_net(result.correlation, result.gamma_gain, result.gamma_loss)
+end
+
+function continuity_residuals(net::AbstractVector{<:Real}, currents::AbstractVector{<:Real}, bc::BoundaryCondition)
+    L = length(net)
+    residuals = zeros(Float64, L)
+    if bc isa PBC
+        for i in 1:L
+            left = i == 1 ? currents[end] : currents[i - 1]
+            right = currents[i]
+            residuals[i] = net[i] - left + right
         end
-        return currents
     else
-        error("unsupported boundary = $(result.boundary)")
-    end
-end
-
-function current_expectation(result::SteadyStateResult, p::ModelParams)
-    currents = bond_currents(result, p)
-    return sum(currents) / length(currents)
-end
-
-function steady_state_residual(result::SteadyStateResult, p::ModelParams)
-    W = thermal_rates(result.energies, p.alpha, p.beta)
-    injections = zeros(Float64, length(result.occupations))
-    losses = zeros(Float64, length(result.occupations))
-
-    if result.drive_model == :mode
-        if result.boundary != :pbc
-            error("mode-drive residual is only supported for PBC results")
+        residuals[1] = net[1] + currents[1]
+        for i in 2:(L - 1)
+            residuals[i] = net[i] - currents[i - 1] + currents[i]
         end
-        isnothing(result.mode_labels) && error("PBC results must store mode labels")
-        ks = result.mode_labels
-        gain, loss = drive_rates_pbc(p, ks)
-        injections .+= gain
-        losses .+= loss
-    elseif result.drive_model == :site
-        periodic = result.boundary == :pbc
-        W .+= drive_rates_site(p, result.basis_transform; periodic = periodic)
-    else
-        error("unsupported drive_model = $(result.drive_model)")
+        residuals[L] = net[L] - currents[end]
     end
+    return residuals
+end
 
-    rhs = occupation_rhs(result.occupations, W; injection = injections, loss = losses)
+function continuity_residuals(result::SteadyStateResult)
+    bc = result.boundary == :pbc ? PBC() : OBC()
+    net = dissipative_site_net(result)
+    return continuity_residuals(net, result.currents, bc)
+end
+
+function steady_state_residual(
+    C::AbstractMatrix{<:Complex},
+    h::AbstractMatrix{<:Complex},
+    gamma_gain::AbstractMatrix{<:Complex},
+    gamma_loss::AbstractMatrix{<:Complex},
+)
+    rhs = covariance_rhs(C, h, gamma_gain, gamma_loss)
     return norm(rhs, Inf)
+end
+
+function steady_state_residual(result::SteadyStateResult)
+    return result.residual
 end

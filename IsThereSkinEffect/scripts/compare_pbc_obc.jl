@@ -5,29 +5,27 @@ Pkg.activate(joinpath(@__DIR__, ".."))
 using IsThereSkinEffect
 using Plots
 
-params = ModelParams(24, 1.0, 0.4, 0.5, 4.0; mu = 0.0)
-comparison = compare_boundaries_site_drive(params)
+params = ModelParams(32, 1.0, 0.4)
+comparison = compare_boundaries(params)
 
-println("PBC energies = ", comparison.pbc.energies)
-println("PBC occupations = ", comparison.pbc.occupations)
 println("PBC density = ", comparison.pbc.density)
 println("PBC density contrast = ", maximum(comparison.pbc.density) - minimum(comparison.pbc.density))
-println("PBC coherent current = ", sum(coherent_bond_currents(comparison.pbc, params)) / length(coherent_bond_currents(comparison.pbc, params)))
-println("PBC dissipative flux = ", dissipative_flux_expectation(comparison.pbc, params))
-println("PBC bond fluxes = ", dissipative_fluxes(comparison.pbc, params))
-println("PBC residual = ", steady_state_residual(comparison.pbc, params))
+println("PBC bond currents = ", comparison.pbc.currents)
+println("PBC current average = ", current_expectation(comparison.pbc))
+println("PBC dissipative site net = ", dissipative_site_net(comparison.pbc))
+println("PBC continuity residual = ", continuity_residuals(comparison.pbc))
+println("PBC residual = ", steady_state_residual(comparison.pbc))
 println()
-println("OBC energies = ", comparison.obc.energies)
-println("OBC occupations = ", comparison.obc.occupations)
 println("OBC density = ", comparison.obc.density)
 println("OBC density contrast = ", maximum(comparison.obc.density) - minimum(comparison.obc.density))
-println("OBC coherent current = ", sum(coherent_bond_currents(comparison.obc, params)) / length(coherent_bond_currents(comparison.obc, params)))
-println("OBC dissipative flux = ", dissipative_flux_expectation(comparison.obc, params))
-println("OBC bond fluxes = ", dissipative_fluxes(comparison.obc, params))
-println("OBC residual = ", steady_state_residual(comparison.obc, params))
+println("OBC bond currents = ", comparison.obc.currents)
+println("OBC current average = ", current_expectation(comparison.obc))
+println("OBC dissipative site net = ", dissipative_site_net(comparison.obc))
+println("OBC continuity residual = ", continuity_residuals(comparison.obc))
+println("OBC residual = ", steady_state_residual(comparison.obc))
 
 sites = collect(1:params.L)
-fig = plot(
+density_fig = plot(
     sites,
     comparison.pbc.density;
     label = "PBC",
@@ -38,14 +36,42 @@ fig = plot(
     ylims = (0.0, 1.0),
 )
 plot!(
-    fig,
+    density_fig,
     sites,
     comparison.obc.density;
     label = "OBC",
     marker = :square,
     lw = 2,
+    ylims = (0.0, 1.0),
 )
 
-png_path = joinpath(@__DIR__, "pbc_obc_density.png")
-savefig(fig, png_path)
-println("saved density plot to ", png_path)
+density_path = joinpath(@__DIR__, "pbc_obc_density.png")
+savefig(density_fig, density_path)
+println("saved density plot to ", density_path)
+
+pbc_bonds = collect(1:length(comparison.pbc.currents))
+obc_bonds = collect(1:length(comparison.obc.currents))
+current_fig = plot(
+    pbc_bonds,
+    comparison.pbc.currents;
+    label = "PBC",
+    xlabel = "bond",
+    ylabel = "coherent current",
+    marker = :circle,
+    lw = 2,
+    ylims = (0.0, 1.0),
+)
+plot!(
+    current_fig,
+    obc_bonds,
+    comparison.obc.currents;
+    label = "OBC",
+    marker = :square,
+    lw = 2,
+    ylims = (0.0, 1.0),
+)
+
+
+current_path = joinpath(@__DIR__, "pbc_obc_current.png")
+savefig(current_fig, current_path)
+println("saved current plot to ", current_path)
