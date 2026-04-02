@@ -51,7 +51,7 @@ function system_hamiltonian(p::SystemParams)
     elseif p.n_sites == 3
         c1, c2, c3, cd1, cd2, cd3 = fermion_ops_3site()
 
-        H_matrix = -p.t * [0 1 0; 1 0 1; 0 1 0] - p.omega * diagm([-1.0, 0.0, +1.0])
+        H_matrix = -p.t * [0 1 0; 1 0 1; 0 1 0] - p.omega * diagm([1.0, 0.0, -1.0])
         c_vec = [c1, c2, c3]
         H_op = c_vec' * H_matrix * c_vec
         return H_matrix, H_op
@@ -73,21 +73,39 @@ function system_hamiltonian(p::SystemParams)
     end
 end
 
-function system_hamiltonian_3site(p::SystemParams)
-    c1, c2, c3, cd1, cd2, cd3 = fermion_ops_3site()
 
-    n1 = cd1 * c1
-    n2 = cd2 * c2
-    n3 = cd3 * c3
+function site_ops(p::SystemParams)
+    # 3サイト版なら fermion_ops_3site() を呼ぶ
+    # 将来は generic fermion_ops_chain(nsites(p)) に差し替えたい
+    if p.n_sites == 2
+        c1, c2, _, _ = fermion_ops_2site()
+        return [c1, c2], [c1', c2']
+    elseif p.n_sites == 3
+        c1, c2, c3, cd1, cd2, cd3 = fermion_ops_3site()
+        c_ops  = [c1, c2, c3]
+        cd_ops = [cd1, cd2, cd3]
+        return c_ops, cd_ops
+    else
+        error("n_sites must be 2 or 3")
+    end
+end
 
-    H_hop = -p.t * (
-        cd1 * c2 + cd2 * c1 +
-        cd2 * c3 + cd3 * c2
-    )
+function one_particle_basis(p::SystemParams)
+    _, cds = site_ops(p)
+    d = size(cds[1], 1)
+    vac = zeros(ComplexF64, d)
+    vac[1] = 1.0
+    return [cd * vac for cd in cds]
+end
 
-    H_pot = -p.omega * n1 + 0.0 * n2 + p.omega * n3
-
-    return H_hop + H_pot
+function one_particle_block(Op, p)
+    basis = one_particle_basis(p)
+    n = length(basis)
+    h = zeros(ComplexF64, n, n)
+    for i in 1:n, j in 1:n
+        h[i, j] = basis[i]' * Op * basis[j]
+    end
+    return h
 end
 
 # Diagonalize the single-particle Hamiltonian.
@@ -209,55 +227,6 @@ function coupling_ops_by_frequency(p::SystemParams, site::Int; tol::Float64 = 1e
     return ops
 end
 
-#=
-function mixing_angles(p::SystemParams)
-    r = sqrt(p.t^2 + (p.omega / 2)^2)
-    den = sqrt((r + p.omega / 2)^2 + p.t^2)
-    c = (r + p.omega / 2) / den
-    s = p.t / den
-    return r, c, s
-end
-
-function normal_modes(p::SystemParams)
-    c1, c2, _, _ = fermion_ops_2site()
-    _, c, s = mixing_angles(p)
-    # Match main.tex rotation: [c+; c-] = [c -s; -s -c] [c1; c2]
-    cplus = c * c1 - s * c2
-    cminus = -s * c1 - c * c2
-    return cplus, cminus
-end
-
-function local_to_eigen_coeff(site::Int, c::Float64, s::Float64)
-    if site == 1
-        return c, -s
-    elseif site == 2
-        return -s, -c
-    else
-        error("site must be 1 or 2")
-    end
-end
-
-"""
-Decompose Hermitian system operators (eqs. 62-64, 87-90) into Bohr frequencies ±r.
-Returns Dict((p, sign) => c_p[sign*r]), p in (:alpha, :beta), sign in (+1, -1).
-"""
-function coupling_ops_by_frequency(p::SystemParams, site::Int)
-    cplus, cminus = normal_modes(p)
-    _, c, s = mixing_angles(p)
-    a, b = local_to_eigen_coeff(site, c, s)
-
-    # For ci = a c+ + b c-, positive-frequency part carries c+ and c-†.
-    # c_alpha = i(ci - ci†)/√2, c_beta = (ci† + ci)/√2.
-    c_alpha_plus = im * (a * cplus - b * cminus') / sqrt(2)
-    c_beta_plus = (a * cplus + b * cminus') / sqrt(2)
-
-    ops = Dict{Tuple{Symbol, Int}, Matrix{C64}}()
-    ops[(:alpha, +1)] = c_alpha_plus
-    ops[(:alpha, -1)] = c_alpha_plus'
-    ops[(:beta, +1)] = c_beta_plus
-    ops[(:beta, -1)] = c_beta_plus'
-    return ops
-end=#
 
 # Vectorization helpers: vec(A ρ B) = (B^T ⊗ A) vec(ρ)
 function spre(A::AbstractMatrix{C64}, d::Int)

@@ -3,21 +3,6 @@
 #include("redfield.jl")
 #include("NathanRudner.jl")
 
-function site_ops(p::SystemParams)
-    # 3サイト版なら fermion_ops_3site() を呼ぶ
-    # 将来は generic fermion_ops_chain(nsites(p)) に差し替えたい
-    if p.n_sites == 2
-        c1, c2, _, _ = fermion_ops_2site()
-        return [c1, c2], [c1', c2']
-    elseif p.n_sites == 3
-        c1, c2, c3, cd1, cd2, cd3 = fermion_ops_3site()
-        c_ops  = [c1, c2, c3]
-        cd_ops = [cd1, cd2, cd3]
-        return c_ops, cd_ops
-    else
-        error("n_sites must be 2 or 3")
-    end
-end
 
 function local_number_projectors(p::SystemParams)
     c_ops, cd_ops = site_ops(p)
