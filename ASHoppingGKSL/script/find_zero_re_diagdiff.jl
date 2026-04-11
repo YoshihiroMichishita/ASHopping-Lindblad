@@ -19,6 +19,29 @@ function get_opt(opts, key, default)
     return get(opts, key, string(default))
 end
 
+function compute_one_particle_heff(m, sys, mode; scale::Float64 = 1.0, time::Float64 = 0.0, Nt::Int = 400)
+    _, Hsys = gksl.system_hamiltonian(sys)
+    Hls_loc, Hg_loc = gksl.redfield_Heff(m)
+
+    if mode == :red
+        return gksl.one_particle_block(Hsys + Hls_loc + Hg_loc, sys)
+    elseif mode == :nr
+        Hls_loc, Hg_loc = gksl.nr_Heff_from_redfield(m)
+        return gksl.one_particle_block(Hsys + Hls_loc + Hg_loc, sys)
+    elseif mode == :tb_static
+        Hls_tb, Hg_tb = gksl.redfield_Heff_TwistedBoundary(m; scale=scale)
+        return gksl.one_particle_block(Hsys + Hls_loc + Hg_loc + Hls_tb + Hg_tb, sys)
+    elseif mode == :tb_time
+        Hls_tb, Hg_tb = gksl.redfield_Heff_TwistedBoundary(m, time; scale=scale)
+        return gksl.one_particle_block(Hsys + Hls_loc + Hg_loc + Hls_tb + Hg_tb, sys)
+    elseif mode == :tb_floquet
+        hF, _, _, _ = gksl.redfield_Heff_TwistedBoundary_floquet(m; Nt=Nt, scale=scale)
+        return hF
+    else
+        error("mode must be :local, :tb_static, :tb_time, or :tb_floquet")
+    end
+end
+
 function build_model(nsites, t, omega, mu, beta, Gamma, tau_c, bathkind)
     sys = gksl.SystemParams(nsites, t, omega)
     if bathkind == :bath
@@ -33,15 +56,18 @@ function build_model(nsites, t, omega, mu, beta, Gamma, tau_c, bathkind)
     return sys, gksl.TwoBathModel(sys, b1, b2)
 end
 
-function heff_block(nsites, t, omega, mu, beta, Gamma, tau_c, bathkind)
+function heff_block(nsites, t, omega, mu, beta, Gamma, tau_c, bathkind;
+                    mode::Symbol = :local, scale::Float64 = 1.0,
+                    time::Float64 = 0.0, Nt::Int = 400)
     sys, m = build_model(nsites, t, omega, mu, beta, Gamma, tau_c, bathkind)
-    _, Hsys = gksl.system_hamiltonian(sys)
-    Hls, Hg = gksl.redfield_Heff(m)
-    return sys, gksl.one_particle_block(Hsys + Hls + Hg, sys)
+    return sys, compute_one_particle_heff(m, sys, mode; scale=scale, time=time, Nt=Nt)
 end
 
-function re_diagdiff(nsites, t, omega, mu, beta, Gamma, tau_c, bathkind, site_i, site_j)
-    _, h = heff_block(nsites, t, omega, mu, beta, Gamma, tau_c, bathkind)
+function re_diagdiff(nsites, t, omega, mu, beta, Gamma, tau_c, bathkind, site_i, site_j;
+                     mode::Symbol = :local, scale::Float64 = 1.0,
+                     time::Float64 = 0.0, Nt::Int = 400)
+    _, h = heff_block(nsites, t, omega, mu, beta, Gamma, tau_c, bathkind;
+                      mode=mode, scale=scale, time=time, Nt=Nt)
     return real(h[site_i, site_i] - h[site_j, site_j])
 end
 
@@ -70,8 +96,12 @@ function bisect_root(f, a, b; tol=1e-12, maxiter=200)
     return (left + right) / 2
 end
 
-function find_root(nsites, t, mu, beta, Gamma, tau_c, bathkind, site_i, site_j; omega_min=-2.0, omega_max=2.0, ngrid=4001)
-    f(omega) = re_diagdiff(nsites, t, omega, mu, beta, Gamma, tau_c, bathkind, site_i, site_j)
+function find_root(nsites, t, mu, beta, Gamma, tau_c, bathkind, site_i, site_j;
+                   omega_min=-2.0, omega_max=2.0, ngrid=4001,
+                   mode::Symbol = :local, scale::Float64 = 1.0,
+                   time::Float64 = 0.0, Nt::Int = 400)
+    f(omega) = re_diagdiff(nsites, t, omega, mu, beta, Gamma, tau_c, bathkind, site_i, site_j;
+                           mode=mode, scale=scale, time=time, Nt=Nt)
     xs = collect(range(omega_min, omega_max; length=ngrid))
     vals = f.(xs)
 
@@ -98,6 +128,10 @@ function main(args)
     Gamma = parse(Float64, get_opt(opts, "Gamma", 1.0))
     tau_c = parse(Float64, get_opt(opts, "tau-c", 0.2))
     bathkind = Symbol(get_opt(opts, "bathkind", "bath2"))
+    mode = Symbol(get_opt(opts, "mode", "local"))
+    scale = parse(Float64, get_opt(opts, "scale", 1.0))
+    time = parse(Float64, get_opt(opts, "time", 0.0))
+    Nt = parse(Int, get_opt(opts, "Nt", 400))
     omega_min = parse(Float64, get_opt(opts, "omega-min", -2.0))
     omega_max = parse(Float64, get_opt(opts, "omega-max", 2.0))
     ngrid = parse(Int, get_opt(opts, "ngrid", 4001))
@@ -113,9 +147,11 @@ function main(args)
     omega_star, residual = find_root(
         nsites, t, mu, beta, Gamma, tau_c, bathkind, site_i, site_j;
         omega_min=omega_min, omega_max=omega_max, ngrid=ngrid,
+        mode=mode, scale=scale, time=time, Nt=Nt,
     )
 
-    sys, h = heff_block(nsites, t, omega_star, mu, beta, Gamma, tau_c, bathkind)
+    sys, h = heff_block(nsites, t, omega_star, mu, beta, Gamma, tau_c, bathkind;
+                        mode=mode, scale=scale, time=time, Nt=Nt)
     diagdiff = h[site_i, site_i] - h[site_j, site_j]
 
     println("Parameters:")
@@ -126,6 +162,15 @@ function main(args)
     println("  Gamma    = ", Gamma)
     println("  tau_c    = ", tau_c)
     println("  bathkind = ", bathkind)
+    println("  mode     = ", mode)
+    if mode == :tb_time
+        println("  time     = ", time)
+    elseif mode == :tb_floquet
+        println("  Nt       = ", Nt)
+    end
+    if mode != :local
+        println("  scale    = ", scale)
+    end
     println("  target   = Re[h[$site_i,$site_i] - h[$site_j,$site_j]] = 0")
     println()
     println("Solution:")

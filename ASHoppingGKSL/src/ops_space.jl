@@ -9,6 +9,64 @@ struct SystemParams
     omega::Float64   # potential drop between neighboring sites
 end
 
+function fermion_ops_chain(n::Int)
+    n >= 2 || error("n must be >= 2")
+
+    I2 = Matrix{C64}(I, 2, 2)
+    c = C64[0 1; 0 0]
+    sigma_z = C64[1 0; 0 -1]
+
+    c_ops = Matrix{C64}[]
+    cd_ops = Matrix{C64}[]
+
+    # basis ordering: |n_n ... n_2 n_1>
+    for i in 1:n
+        factors = Matrix{C64}[]
+        for s in n:-1:1
+            if s > i
+                push!(factors, I2)
+            elseif s == i
+                push!(factors, c)
+            else
+                push!(factors, sigma_z)
+            end
+        end
+        op = foldl(kron, factors)
+        push!(c_ops, op)
+        push!(cd_ops, op')
+    end
+
+    return c_ops, cd_ops
+end
+
+
+function single_particle_hamiltonian(p::SystemParams)
+    n = p.n_sites
+    H0 = zeros(Float64, n, n)
+
+    for i in 1:(n - 1)
+        H0[i, i + 1] = -p.t
+        H0[i + 1, i] = -p.t
+    end
+
+    # 線形ポテンシャル。中心を 0 に取る。
+    positions = collect((-(n - 1) / 2):1:((n - 1) / 2))
+    H0 .+= Diagonal(p.omega .* positions)
+
+    return H0
+end
+
+function system_hamiltonian(p::SystemParams)
+    H0 = single_particle_hamiltonian(p)
+    c_ops, cd_ops = fermion_ops_chain(p.n_sites)
+
+    H_op = zero(c_ops[1])
+    for i in 1:p.n_sites, j in 1:p.n_sites
+        H_op += H0[i, j] * cd_ops[i] * c_ops[j]
+    end
+
+    return H0, H_op
+end
 
 
 """
@@ -39,7 +97,7 @@ function fermion_ops_3site()
 
     return c1, c2, c3, c1', c2', c3'
 end
-
+#=
 function system_hamiltonian(p::SystemParams)
     if p.n_sites == 2
         c1, c2, cd1, cd2 = fermion_ops_2site()
@@ -71,10 +129,14 @@ function system_hamiltonian(p::SystemParams)
     else
         error("n_sites must be 2 or 3")
     end
-end
-
+end=#
 
 function site_ops(p::SystemParams)
+    return fermion_ops_chain(p.n_sites)
+end
+
+#=
+function site_ops_old(p::SystemParams)
     # 3サイト版なら fermion_ops_3site() を呼ぶ
     # 将来は generic fermion_ops_chain(nsites(p)) に差し替えたい
     if p.n_sites == 2
@@ -88,7 +150,7 @@ function site_ops(p::SystemParams)
     else
         error("n_sites must be 2 or 3")
     end
-end
+end=#
 
 function one_particle_basis(p::SystemParams)
     _, cds = site_ops(p)
@@ -111,6 +173,15 @@ end
 # Diagonalize the single-particle Hamiltonian.
 # U[:,a] is the a-th eigenmode in the site basis.
 function single_particle_eigensystem(p::SystemParams)
+    H0, _ = system_hamiltonian(p)
+    eig = eigen(Hermitian(H0))
+    eps = real.(eig.values)
+    U = eig.vectors
+    perm = sortperm(eps)
+    return eps[perm], U[:, perm]
+end
+
+#=function single_particle_eigensystem(p::SystemParams)
     if p.n_sites == 2
         c1, c2, _, _ = fermion_ops_2site()
         h_matrix, h_op = system_hamiltonian(p)
@@ -131,7 +202,7 @@ function single_particle_eigensystem(p::SystemParams)
     U = U[:, perm]
 
     return eps, U
-end
+end=#
 
 # Build annihilation operators d_a for the single-particle normal modes:
 # c_i = sum_a U[i,a] d_a
@@ -141,6 +212,26 @@ end
 #   U        :: Matrix{ComplexF64}
 #   d_modes  :: Vector{Matrix{C64}}
 #   dd_modes :: Vector{Matrix{C64}}
+function normal_modes(p::SystemParams)
+    eps, U = single_particle_eigensystem(p)
+    c_ops, _ = site_ops(p)
+
+    d_modes = Matrix{C64}[]
+    dd_modes = Matrix{C64}[]
+
+    for a in eachindex(eps)
+        d = zero(c_ops[1])
+        for i in 1:length(c_ops)
+            d += conj(U[i, a]) * c_ops[i]
+        end
+        push!(d_modes, d)
+        push!(dd_modes, d')
+    end
+
+    return eps, U, d_modes, dd_modes
+end
+
+#=
 function normal_modes(p::SystemParams)
     eps, U = single_particle_eigensystem(p)
 
@@ -170,7 +261,7 @@ function normal_modes(p::SystemParams)
     end
 
     return eps, U, d_modes, dd_modes
-end
+end=#
 
 # Group nearby frequencies to avoid raw floating-point Dict keys.
 function bucket_frequency(w::Float64; tol::Float64 = 1e-10)

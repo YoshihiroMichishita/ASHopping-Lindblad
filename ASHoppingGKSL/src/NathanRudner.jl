@@ -178,7 +178,7 @@ function nr_Heff_from_redfield(m::TwoBathModel)
 
                 coeff_ls = 0.5 * (eta_w + eta_wp)
 
-                H_g  += -1im * pref * Gamma[pidx[p], pidx[q]] * (Ap' * Aq)
+                H_g  += 1im * pref * Gamma[pidx[p], pidx[q]] * (Ap' * Aq)
                 H_LS +=       pref * coeff_ls              * (Ap' * Aq)
             end
         end
