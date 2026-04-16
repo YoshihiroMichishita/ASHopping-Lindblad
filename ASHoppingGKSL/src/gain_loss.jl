@@ -401,7 +401,6 @@ function nr_local_gain_loss_coeffs(m::TwoBathModel)
     loss_coeff = zeros(Float64, n)  # coeff of c_j ρ c_j†
 
     for bathind in 1:2
-
         for J in jumps_by_bath[bathind]
             u, v = operator_linear_coeffs_in_site_basis(J, m.sys)
 
@@ -413,6 +412,31 @@ function nr_local_gain_loss_coeffs(m::TwoBathModel)
     end
 
     return gain_coeff, loss_coeff
+end
+
+function nr_local_gain_loss_coeffs_bath(m::TwoBathModel)
+    jumps_by_bath = nr_jumps_by_bath(m)
+    n = m.sys.n_sites
+
+    gains = []
+    losses = []
+
+    for bathind in 1:2
+        gain_coeff = zeros(Float64, n)  # coeff of c_j† ρ c_j
+        loss_coeff = zeros(Float64, n)  # coeff of c_j ρ c_j†
+        for J in jumps_by_bath[bathind]
+            u, v = operator_linear_coeffs_in_site_basis(J, m.sys)
+
+            for j in 1:n
+                loss_coeff[j] += 2 * real(u[j] * conj(u[j]))
+                gain_coeff[j] += 2 * real(v[j] * conj(v[j]))
+            end
+        end
+        push!(gains, gain_coeff)
+        push!(losses, loss_coeff)
+    end
+
+    return gains, losses
 end
 
 function redfield_local_gain_loss_coeffs(m::TwoBathModel)
