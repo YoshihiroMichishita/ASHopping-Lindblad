@@ -3,21 +3,6 @@
 #include("redfield.jl")
 #include("NathanRudner.jl")
 
-function site_ops(p::SystemParams)
-    # 3サイト版なら fermion_ops_3site() を呼ぶ
-    # 将来は generic fermion_ops_chain(nsites(p)) に差し替えたい
-    if p.n_sites == 2
-        c1, c2, _, _ = fermion_ops_2site()
-        return [c1, c2], [c1', c2']
-    elseif p.n_sites == 3
-        c1, c2, c3, cd1, cd2, cd3 = fermion_ops_3site()
-        c_ops  = [c1, c2, c3]
-        cd_ops = [cd1, cd2, cd3]
-        return c_ops, cd_ops
-    else
-        error("n_sites must be 2 or 3")
-    end
-end
 
 function local_number_projectors(p::SystemParams)
     c_ops, cd_ops = site_ops(p)
@@ -391,3 +376,104 @@ function site_gain_loss_bath(m::TwoBathModel, rho::Matrix{C64}; method::Symbol =
         error("method must be :gksl or :redfield")
     end
 end=#
+
+function operator_linear_coeffs_in_site_basis(Op::AbstractMatrix{<:Complex}, sys::SystemParams)
+    c_ops, cd_ops = site_ops(sys)
+    n = sys.n_sites
+
+    u = zeros(ComplexF64, n)  # coeffs of c_i
+    v = zeros(ComplexF64, n)  # coeffs of c_i†
+
+    # ここは厳密には Hilbert-Schmidt projection
+    for i in 1:n
+        u[i] = tr(c_ops[i]' * Op) / tr(c_ops[i]' * c_ops[i])
+        v[i] = tr(cd_ops[i]' * Op) / tr(cd_ops[i]' * cd_ops[i])
+    end
+
+    return u, v
+end
+
+function nr_local_gain_loss_coeffs(m::TwoBathModel)
+    jumps_by_bath = nr_jumps_by_bath(m)
+    n = m.sys.n_sites
+
+    gain_coeff = zeros(Float64, n)  # coeff of c_j† ρ c_j
+    loss_coeff = zeros(Float64, n)  # coeff of c_j ρ c_j†
+
+    for bathind in 1:2
+        for J in jumps_by_bath[bathind]
+            u, v = operator_linear_coeffs_in_site_basis(J, m.sys)
+
+            for j in 1:n
+                loss_coeff[j] += 2 * real(u[j] * conj(u[j]))
+                gain_coeff[j] += 2 * real(v[j] * conj(v[j]))
+            end
+        end
+    end
+
+    return gain_coeff, loss_coeff
+end
+
+function nr_local_gain_loss_coeffs_bath(m::TwoBathModel)
+    jumps_by_bath = nr_jumps_by_bath(m)
+    n = m.sys.n_sites
+
+    gains = []
+    losses = []
+
+    for bathind in 1:2
+        gain_coeff = zeros(Float64, n)  # coeff of c_j† ρ c_j
+        loss_coeff = zeros(Float64, n)  # coeff of c_j ρ c_j†
+        for J in jumps_by_bath[bathind]
+            u, v = operator_linear_coeffs_in_site_basis(J, m.sys)
+
+            for j in 1:n
+                loss_coeff[j] += 2 * real(u[j] * conj(u[j]))
+                gain_coeff[j] += 2 * real(v[j] * conj(v[j]))
+            end
+        end
+        push!(gains, gain_coeff)
+        push!(losses, loss_coeff)
+    end
+
+    return gains, losses
+end
+
+function redfield_local_gain_loss_coeffs(m::TwoBathModel)
+    n = m.sys.n_sites
+
+    gain_j = zeros(ComplexF64, n)  # coeff of c_j† ρ c_j
+    loss_j = zeros(ComplexF64, n)  # coeff of c_j ρ c_j†
+
+    for bathind in 1:2
+        site = bath_site(m, bathind)
+        bath = bath_by_index(m, bathind)
+
+        ops = coupling_ops_by_frequency(m.sys, site)
+        freqs = frequency_list(ops)
+
+        for p in majorana_channels(), q in majorana_channels(), w in freqs, wp in freqs
+            Ap = ops[(p, w)]
+            Aq = ops[(q, wp)]
+
+            pref = (p == q) ? 1.0 : -1.0
+
+            gamma_w, eta_w = gamma_eta_from_phi(bath, p, q, w)
+            gamma_wp, eta_wp = gamma_eta_from_phi(bath, p, q, wp)
+            Gamma = 0.5 * (gamma_w + gamma_wp) - 1im * (eta_w - eta_wp)
+
+            u_p, v_p = operator_linear_coeffs_in_site_basis(Ap, m.sys)
+            u_q, v_q = operator_linear_coeffs_in_site_basis(Aq, m.sys)
+
+            for j in 1:n
+                # 2 pref Gamma Aq ρ Ap† の c_j ρ c_j† 成分
+                loss_j[j] += 2 * pref * Gamma * u_q[j] * conj(u_p[j])
+
+                # 2 pref Gamma Aq ρ Ap† の c_j† ρ c_j 成分
+                gain_j[j] += 2 * pref * Gamma * v_q[j] * conj(v_p[j])
+            end
+        end
+    end
+
+    return gain_j, loss_j
+end

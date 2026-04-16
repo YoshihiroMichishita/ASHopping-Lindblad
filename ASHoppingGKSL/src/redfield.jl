@@ -472,6 +472,129 @@ function redfield_parts_TwistedBoundary(m::TwoBathModel; scale::Float64 = 1.0)
     return scale * L_diss, scale * H_LS
 end
 
+function redfield_Heff_TwistedBoundary(m::TwoBathModel, t::Float64; scale::Float64 = 1.0)
+    _, H = system_hamiltonian(m.sys)
+    d = size(H, 1)
+
+    H_nh = zeros(C64, d, d)
+    H_LS = zeros(C64, d, d)
+
+    ops_by_bath = tb_ops_by_bath(m)
+    freqs = tb_frequency_list(m)
+    pq = majorana_channels()
+
+    for (src_bath, dst_bath) in ((1, 2), (2, 1))
+        src_ops = ops_by_bath[src_bath]
+        dst_ops = ops_by_bath[dst_bath]
+        src_spec = bath_by_index(m, src_bath)
+        dst_spec = bath_by_index(m, dst_bath)
+
+        for p in pq, q in pq, w in freqs, wp in freqs
+            Ap = src_ops[(p, w)]
+            Aq = dst_ops[(q, wp)]
+            pref = (p == q) ? -1.0 : 1.0
+
+            gamma_w, eta_w   = gamma_eta_from_phi_TwistedBoundary(src_spec, dst_spec, q, p, w, t)
+            gamma_wp, eta_wp = gamma_eta_from_phi_TwistedBoundary(dst_spec, src_spec, p, q, wp, t)
+
+            Gamma = 0.5 * (gamma_w' + gamma_wp) - 1im * (eta_w' - eta_wp)
+            coeff_ls = 0.5 * (eta_w' + eta_wp) + 0.25im * (gamma_w' - gamma_wp)
+
+            H_LS += pref * coeff_ls * (Ap' * Aq)
+            H_nh += pref * 1im * Gamma * (Ap' * Aq)
+        end
+    end
+
+    H_LS = 0.5 * (H_LS + H_LS')
+    return scale * H_LS, scale * H_nh
+end
+
+function redfield_Heff_TwistedBoundary(m::TwoBathModel; scale::Float64 = 1.0)
+    _, H = system_hamiltonian(m.sys)
+    d = size(H, 1)
+
+    H_nh = zeros(C64, d, d)
+    H_LS = zeros(C64, d, d)
+
+    ops_by_bath = tb_ops_by_bath(m)
+    freqs = tb_frequency_list(m)
+    pq = majorana_channels()
+
+    for (src_bath, dst_bath) in ((1, 2), (2, 1))
+        src_ops = ops_by_bath[src_bath]
+        dst_ops = ops_by_bath[dst_bath]
+        src_spec = bath_by_index(m, src_bath)
+        dst_spec = bath_by_index(m, dst_bath)
+
+        for p in pq, q in pq, w in freqs, wp in freqs
+            Ap = src_ops[(p, w)]
+            Aq = dst_ops[(q, wp)]
+            pref = (p == q) ? -1.0 : 1.0
+
+            gamma_w, eta_w   = gamma_eta_from_phi_TwistedBoundary(src_spec, dst_spec, q, p, w)
+            gamma_wp, eta_wp = gamma_eta_from_phi_TwistedBoundary(dst_spec, src_spec, p, q, wp)
+
+            Gamma = 0.5 * (gamma_w' + gamma_wp) - 1im * (eta_w' - eta_wp)
+            coeff_ls = 0.5 * (eta_w' + eta_wp) + 0.25im * (gamma_w' - gamma_wp)
+
+            H_LS += pref * coeff_ls * (Ap' * Aq)
+            H_nh += pref * 1im * Gamma * (Ap' * Aq)
+        end
+    end
+
+    H_LS = 0.5 * (H_LS + H_LS')
+    return scale * H_LS, scale * H_nh
+end
+
+function branch_matched_floquet_log(U::Matrix{C64}, h_avg::Matrix{C64}, T::Float64)
+    eigU = eigen(U)
+    V = eigU.vectors
+    Vinv = inv(V)
+
+    # principal branch
+    λ_principal = (1im / T) .* log.(eigU.values)
+
+    # U の固有基底で見た h_avg の「参照固有値」
+    # 行ベクトル w_j^T = (V^{-1})[j, :]
+    λ_ref = zeros(C64, length(λ_principal))
+    for j in eachindex(λ_principal)
+        vj = V[:, j]
+        wj = transpose(Vinv[j, :])   # left eigenvector as row
+        num = (wj * (h_avg * vj))[1]
+        den = (wj * vj)[1]
+        λ_ref[j] = num / den
+    end
+
+    # log の branch ambiguity は 2π/T の実数シフト
+    k = round.(Int, real.((λ_principal .- λ_ref) .* (T / (2π))))
+    λ_matched = λ_principal .- (2π / T) .* k
+
+    hF = V * Diagonal(λ_matched) * Vinv
+    return hF, λ_matched, λ_ref, k
+end
+
+function redfield_Heff_TwistedBoundary_floquet(m::TwoBathModel; Nt::Int = 400, scale::Float64 = 1.0)
+    Δμ = m.bath2.μ - m.bath1.μ
+    T = 2π / abs(Δμ)
+    ts = collect(range(0.0, T; length=Nt + 1))
+    dt = ts[2] - ts[1]
+
+    # 各時刻で instantaneous no-jump Heff を作る
+    hs = Matrix{C64}[]
+    U = Matrix{C64}(I, m.sys.n_sites, m.sys.n_sites)
+    for t in ts[1:end-1]
+        Hls_loc, Hg_loc = redfield_Heff(m)
+        Hls_tb_t, Hg_tb_t = redfield_Heff_TwistedBoundary(m, t; scale=scale)
+        _, Hsys = system_hamiltonian(m.sys)
+        push!(hs, one_particle_block(Hsys + Hls_loc + Hg_loc + Hls_tb_t + Hg_tb_t, m.sys))
+        U = exp(-1im * dt * hs[end]) * U
+    end
+    h_avg = (dt / T) * reduce(+, hs)
+    hF, λF, λref, k = branch_matched_floquet_log(U, h_avg, T)
+
+    #hF = (1im / T) * log(U)
+    return hF, U, ts, (h_avg, λF, λref, k)
+end
 
 #=
 function redfield_parts_TwistedBoundary(m::TwoBathModel, t::Float64; scale::Float64=1.0)
@@ -603,7 +726,7 @@ function redfield_parts_TwistedBoundary(m::TwoBathModel; scale::Float64=1.0)
 
     H_LS = 0.5 * (H_LS + H_LS')
     return scale * L_diss, scale * H_LS
-end=#
+end
 
 function redfield_Heff_TwistedBoundary(m::TwoBathModel; scale::Float64=1.0)
     _, H = system_hamiltonian(m.sys)
@@ -665,7 +788,7 @@ function redfield_Heff_TwistedBoundary(m::TwoBathModel; scale::Float64=1.0)
 
     H_LS = 0.5 * (H_LS + H_LS')
     return scale * H_LS, scale * H_nh
-end
+end=#
 
 function normalgksl_parts(m::TwoBathModel)
     _, H = system_hamiltonian(m.sys)

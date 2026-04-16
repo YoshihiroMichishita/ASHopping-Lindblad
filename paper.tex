@@ -1,0 +1,69 @@
+%\documentclass[a4paper, amsfonts, amssymb, amsmath, reprint, showkeys, nofootinbib, twoside,superscriptaddress]{revtex4-2}
+\documentclass{revtex4-2}
+\usepackage[english]{babel}
+\usepackage{here}
+\usepackage[utf8]{inputenc}
+\usepackage{comment}
+\usepackage{bm}
+\usepackage{braket}
+\usepackage{url}
+\usepackage[colorinlistoftodos, color=green!40,prependcaption]{todonotes}
+\usepackage[pdftex, pdftitle={Article}, pdfauthor={Author}]{hyperref} 
+
+
+\newcommand{\rp}[1]{{\color{blue} #1}}
+\newcommand{\ym}[1]{{\color{red} #1}}
+\newcommand{\tr}[1]{\mathrm{Tr}\bigl[{#1}\bigr]}
+\newcommand{\Tr}[1]{\mathrm{Tr}\Bigl[{#1}\Bigr]}
+\newcommand{\TrL}[1]{\mathrm{Tr}\Bigl[{#1}}
+\newcommand{\ReB}[1]{\mathrm{Re}\Bigl[{#1}\Bigr]}
+\newcommand{\ReBL}[1]{\mathrm{Re}\Bigl[{#1}}
+\newcommand{\bk}{\bm{k}}
+\newcommand{\ik}{\int \frac{d\bm{k}}{(2\pi)^d}}
+\newcommand{\iw}{\int_{-\infty}^{\infty} \frac{d\omega}{2\pi}}
+\newcommand{\trg}{\int \mathrm{Tr}(g)dk_xdk_y}
+\newcommand{\detg}{\int \sqrt{\mathrm{det}(g)}dk_xdk_y}
+
+
+
+\bibliographystyle{apsrev4-2}
+\begin{document}
+\title{aa}
+\author{Yoshihiro Michishita}
+\affiliation{Department of Physics, Saitama University, Saitama 338-8570, Japan}
+    \date{\today} 
+\begin{abstract}
+
+\end{abstract}
+\keywords{}
+\maketitle
+\section{Introduction}
+
+In various areas of physics, geometric aspects play an essential role in understanding the fundamental structure, such as in the gauge theory or the topological classification of defects. 
+
+\section{Conclusions}\label{sec:conclusion}
+
+In summary, we have defined a generalized quantum metric(GQM) on the BZ using the single-particle Green's function in interacting systems. The GQM is based on the optical conductivity of the system. The major difference from the previous work is that the GQM is written by the eigenvectors of the spectral function, not the Bloch wave functions.
+Correlation effects are included via the self-energy in the single-particle Green's function. We have shown analytically that the GQM agrees with the existing definition in a noninteracting system at zero temperature and is positive semi-definite as necessary for a metric. Furthermore, we have pointed out the relationship between the GQM and the Chern number ignoring vertex corrections.
+
+To numerically verify our results, we have analyzed the QWZ model, a toy model of a Chern insulator, with additional repulsive interaction.
+We have used the DMFT and NRG to obtain the self-energy of the system and calculate the GQM. To further diagnose the topology of the system, we have computed the Wilson Loop of the effective Hamiltonian at the Fermi energy. 
+
+With the help of the Wilson Loop analysis, we have found that the GQM tends to be larger in the topologically nontrivial phase than in the trivial phase. In addition, the inequality between the quantum volume and the Chern number still holds in the correlated system. Thus, the GQM inherits the properties of the conventional quantum metric even in interacting systems.
+We expect that the GQM affects the physical quantity as in free systems, and this point is left as future work.
+
+\section*{Acknowledgements}
+T. K deeply appreciates Ken Mochizuki, Tomoki Ozawa, Taisei Kitamura, and Shuntaro Sumita for their fruitful discussions. Y. M. is supported by RIKEN Special Postdoctoral Researcher Program and was partially supported by the WISE program. R.P. is supported by JSPS, KAKENHI Grant No. JP18K03511. 
+The computation in this work has been done using the facilities of the Supercomputer Center, the Institute for Solid State Physics, and the University of Tokyo.
+
+\appendix
+ 
+\section{Effect of dissipation on the GQM}
+\label{appendix_dissipation}
+Although $\eta$ should be infinitesimally small, it is finite in numerical calculations. In a noninteracting system, if $\eta$ is infinitesimally small, the integrand in Eq.~\ref{defGQM} becomes finite only when $\omega=E_n$ and $\omega+\omega_1=E_m$ due to the factor $A_n(\omega)A_m(\omega+\omega_1)$ in Eq.~\ref{GQM_A}. It follows that the real part of the symmetrized optical conductivity becomes finite only when the input frequency $\omega_1$ is equal to $E_m-E_n$. However, when $\eta$ is finite, the delta peaks in $A_n(\omega)$ and $A_m(\omega+\omega_1)$ obtain a finite width. Due to this broadening, the gap effectively becomes smaller than it would be for an infinitesimally small $\eta$, resulting in an increase of the GQM because of the factor $1/\omega_1$ in Eq.~(\ref{defGQM}). To confirm the validity of the above discussion, we investigated the $\eta$ dependence of the GQM in Fig.~\ref{fig:Fig5}. This figure shows that the general behavior of the GQM follows the behavior of the existing definition in the noninteracting system for any $\eta$. Figure~\ref{fig:Fig5} shows that the GQM becomes large when $\eta$ is increased. For any $\eta$, the difference between the existing quantum metric and the GQM becomes maximal at the $\mathrm{M}$ point of the BZ, where the gap is the smallest. 
+Because $\eta$ can be regarded as a scattering rate due to defects or impurities(\cite{PhysRevB.105.085154, PhysRevB.105.085139, PhysRevB.102.165151}), our result implies that the GQM will increase in the presence of the defects or impurities.
+
+
+%\bibliography{paper.bib}
+
+\end{document}
