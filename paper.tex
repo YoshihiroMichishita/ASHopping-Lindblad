@@ -7,14 +7,15 @@
 \usepackage{bm}
 \usepackage{braket}
 \usepackage{url}
+\usepackage{physics}
 \usepackage[colorinlistoftodos, color=green!40,prependcaption]{todonotes}
 \usepackage[pdftex, pdftitle={Article}, pdfauthor={Author}]{hyperref} 
 
 
 \newcommand{\rp}[1]{{\color{blue} #1}}
 \newcommand{\ym}[1]{{\color{red} #1}}
-\newcommand{\tr}[1]{\mathrm{Tr}\bigl[{#1}\bigr]}
-\newcommand{\Tr}[1]{\mathrm{Tr}\Bigl[{#1}\Bigr]}
+%\newcommand{\tr}[1]{\mathrm{Tr}\bigl[{#1}\bigr]}
+%\newcommand{\Tr}[1]{\mathrm{Tr}\Bigl[{#1}\Bigr]}
 \newcommand{\TrL}[1]{\mathrm{Tr}\Bigl[{#1}}
 \newcommand{\ReB}[1]{\mathrm{Re}\Bigl[{#1}\Bigr]}
 \newcommand{\ReBL}[1]{\mathrm{Re}\Bigl[{#1}}
@@ -82,7 +83,11 @@ Focusing on the bulk region ogf the system and its steady state, we can define t
 \end{align}
 where $\m{H}^{(\mr{bulk})}$ is the bulk Hamiltonian that is a part of the original Hamiltonian $\m{H}$ performing on the bulk state. We note that, in general, we cannnot uniquely determin $\m{L}_{\mr{eff}}$ only from Eq.~(\ref{effective_Liouvillian}) and we should add other condition to determine $\m{L}_{\mr{eff}}$ such as the almost same eigen value for the first excited state of $\m{L}$ and $\m{L}_{\mr{eff}}$, or the operator form of the jump operator.
 
-Forcusing on the setup in this letter in which we suppose that the effective model consists of the local jump operator as Eq.~(\ref{current_source}) and Eq.~(\ref{jump_op_current}),
+Forcusing on the setup in this letter in which we suppose that the effective model consists of the local jump operator as Eq.~(\ref{current_source}) and Eq.~(\ref{jump_op_current}), $\m{D}^{(j)}_{\mr{c}}$ must satisfy the condition in Eq.~(\ref{effective_Liouvillian}) while the local steady state holds the finite local current expectation value: 
+\begin{align}
+\ev{\m{J}} = \mr{Tr}_{j, j+1}[-i(c^\dagger_{i+1}c_i-c^\dagger_i c_{i+1})\rho^{i, i+1}_{\mr{ss}}]\neq 0.\label{local_current}
+\end{align}
+We note that the conditions for the local steady state in Eq.~(\ref{local_current}) and for the effective Liouvillian in Eq.~(\ref{effective_Liouvillian}) result in the finite imaginary part of $\alpha_1\alpha_2^*$ and $\alpha_3\alpha_4^*$, that is the assymetric hopping term.\footnote{see the Supplemental Materials for the detail derivation.} Below 
 
 \section{steady state proportional to $J^{1}$}\label{sec:results}
 bbb
