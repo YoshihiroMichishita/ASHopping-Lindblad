@@ -18,10 +18,13 @@
 \newcommand{\TrL}[1]{\mathrm{Tr}\Bigl[{#1}}
 \newcommand{\ReB}[1]{\mathrm{Re}\Bigl[{#1}\Bigr]}
 \newcommand{\ReBL}[1]{\mathrm{Re}\Bigl[{#1}}
+\newcommand{\m}[1]{\mathcal{#1}}
+\newcommand{\mr}[1]{\mathrm{#1}}
 \newcommand{\bk}{\bm{k}}
 \newcommand{\ik}{\int \frac{d\bm{k}}{(2\pi)^d}}
 \newcommand{\iw}{\int_{-\infty}^{\infty} \frac{d\omega}{2\pi}}
 \newcommand{\trg}{\int \mathrm{Tr}(g)dk_xdk_y}
+\newcommand{\dt}{\frac{\mathrm{d}}{\mathrm{d}t}}
 \newcommand{\detg}{\int \sqrt{\mathrm{det}(g)}dk_xdk_y}
 
 
@@ -50,10 +53,42 @@ Recently, much effort has been made to analyze the steady state in the boundary-
 In this letter, we introduce the asymmetric-hopping model which holds the translational symmetry as an effective model of the boundary-driven open system under current. We have analyzed the steady state of this model and its effective temperature, and revealed that the effective temperature of the system under current is linearly proportional to the current density, which is similar to the experimental observation in Ref.\cite{}. We also discuss the relation between the effective temperature and the Joule heating.
 
 \section{Model and Setup}\label{sec:model}
-aaa
+For the analysis of the steady state under current, we introduce the asymmetric-hopping model as an effective model of the boundary-driven open system under current. For simplicity, we restrict our model to the one-dimensional spinless fermion model, and the Liouvillian has the translational symmetry and is locally defined as
+\begin{align}
+\dt \rho(t) =& \m{L}_{\mr{eff}}\rho(t)= -i [\m{H}, \rho(t)] + \m{D}_{\mr{c}}[\rho(t)] + \m{D}_{\mr{th}}[\rho(t)],\label{QME}\\
+\m{H} =& -t\sum_{j=1}^{l} (c_j^{\dagger} c_{j+1} + c_{j+1}^{\dagger} c_j),\label{Ham}\\
+\m{D}_{\mathrm{c}}[\rho(t)]=&\sum_{\omega} \gamma(\omega)\sum_{j, \alpha} \Bigl(L^{(\alpha)}_j(\omega) \rho(t) L_j^{(\alpha)\dagger}(\omega)\nonumber\\
+& \ \ \ \ \ \ - \frac{1}{2} \{L_j^{(\alpha)\dagger}(\omega) L^{(\alpha)}_j(\omega), \rho(t)\}\Bigr),\label{current_source}\\
+\m{D}_{\mr{th}}[\rho(t)]=&\sum_{\omega, \omega'} \xi_{\omega\rightarrow \omega'}\sum_{j} \Bigl(L^{(\mr{th})}_j(\omega,\omega') \rho(t) L_j^{(\mr{th})\dagger}(\omega,\omega')\nonumber\\
+& \ \ \ \ \ \ - \frac{1}{2} \{L_j^{(\mr{th})\dagger}(\omega,\omega') L^{(\alpha)}_j(\omega,\omega'), \rho(t)\}\Bigr),\label{thermal_bath}
+\end{align}
+\begin{align}
+L^{(\alpha)}_j(\omega) =& \alpha_1 c_j(\omega) + \alpha_2 c_{j+1}(\omega) + \alpha_3 c_j^{\dagger}(\omega) + \alpha_4 c_{j+1}^{\dagger}(\omega),\label{jump_op_current}\\
+L^{(\mr{th})}_j(\omega,\omega') &= c_j^{\dagger}(\omega')c_j(\omega),\label{jump_op_thermal}\\
+\m{O}(\omega) =& \sum_{\epsilon_n - \epsilon_m =\omega} \ket{m}\bra{m} \m{O} \ket{n}\bra{n},
+\end{align}
+where $\rho(t)$ is the density matrix of the system, $\m{H}$ is the Hamiltonian of the system, and $L^{(\alpha)}_j(\omega)$ and $L^{(\mr{th})}_j(\omega,\omega')$ are the jump operator which describes the coupling between the system and the current source and the thermal bath. We suppose that coupling to the thermal bath does not change the particle number in the system but just try to make the sytem thermal equilibrium state. The parameters $t$ represents the hopping amplitudes, and $\gamma(\omega)$ is a function that characterizes the strength of the coupling between the system and the current source at frequency $\omega$. The coefficients $\alpha_i$ determine how different modes of the system couple to the bath. We pose the periodic boundary condition as $c_{l+1} = c_1$. $\ket{n}$ is the eigenstate of the Hamiltonian $\m{H}$ with eigenvalue $\epsilon_n$.
 
-\section{Results}\label{sec:results}
+From the point of view where $\m{D}_{\mr{c}}[\cdot]$ is derived as the effective description for local bulk steady state of the boundary-driven open system whose steady state is under bulk current, $\alpha_1\alpha_2^*$ and $\alpha_3\alpha_4^*$ must have a finite imaginary part, which means that the jump operator $L_j^{(\alpha)\dagger}(\omega)L_j^{(\alpha)}(\omega)$ should have a finite asymmetric hopping term. The asymmetric hopping term in the jump operator is essential to describe the current flow in the system, and it is expected that the effective temperature of the system under current is affected by this asymmetric hopping term. 
+
+For example, we consider the boundary-driven open system as the original model, whose Liouvillian and steady state are given by 
+\begin{align}
+\dt \rho_{\mr{ss}} =& \m{L}\rho_{\mr{ss}} = -i[\m{H},\rho_{\mr{ss}}] + \m{D}_{\mr{BD}}[\rho_{\mr{ss}}] = 0.
+\end{align}
+Focusing on the bulk region ogf the system and its steady state, we can define the effective Liouvillian $\m{L}_{\mr{eff}}$ as
+\begin{align}
+    \rho^{(\mr{bulk})}_{\mr{ss}} &= \mr{Tr_{edge}}\Bigl[ \rho_{\mr{ss}} \Bigr],\\
+    \m{L}_{\mr{eff}} \rho^{(\mr{bulk})}_{\mr{ss}} &= -i[\m{H}^{(\mr{bulk})}, \rho^{(\mr{bulk})}_{\mr{ss}}] + \m{D}_\mr{eff}[\rho^{(\mr{bulk})}_{\mr{ss}}] = 0,\label{effective_Liouvillian}
+\end{align}
+where $\m{H}^{(\mr{bulk})}$ is the bulk Hamiltonian that is a part of the original Hamiltonian $\m{H}$ performing on the bulk state. We note that, in general, we cannnot uniquely determin $\m{L}_{\mr{eff}}$ only from Eq.~(\ref{effective_Liouvillian}) and we should add other condition to determine $\m{L}_{\mr{eff}}$ such as the almost same eigen value for the first excited state of $\m{L}$ and $\m{L}_{\mr{eff}}$, or the operator form of the jump operator.
+
+Forcusing on the setup in this letter in which we suppose that the effective model consists of the local jump operator as Eq.~(\ref{current_source}) and Eq.~(\ref{jump_op_current}),
+
+\section{steady state proportional to $J^{1}$}\label{sec:results}
 bbb
+
+\section{Comparison to the linear response theory in isolated system}\label{sec:discussion}
+ccccc
 
 \section{Summary and Discussion}\label{sec:conclusion}
 In summary, we have defined a generalized quantum metric(GQM) on the BZ using the single-particle Green's function in interacting systems. The GQM is based on the optical conductivity of the system. The major difference from the previous work is that the GQM is written by the eigenvectors of the spectral function, not the Bloch wave functions.
