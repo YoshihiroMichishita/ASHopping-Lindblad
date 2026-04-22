@@ -58,7 +58,7 @@ For the analysis of the steady state under current, we introduce the asymmetric-
 \begin{align}
 \dt \rho(t) =& \m{L}_{\mr{eff}}\rho(t)= -i [\m{H}, \rho(t)] + \m{D}_{\mr{c}}[\rho(t)] + \m{D}_{\mr{th}}[\rho(t)],\label{QME}\\
 \m{H} =& -t\sum_{j=1}^{l} (c_j^{\dagger} c_{j+1} + c_{j+1}^{\dagger} c_j),\label{Ham}\\
-\m{D}_{\mathrm{c}}[\rho(t)]=&\sum_{\omega} \gamma(\omega)\sum_{j, \alpha} \Bigl(L^{(\alpha)}_j(\omega) \rho(t) L_j^{(\alpha)\dagger}(\omega)\nonumber\\
+\m{D}_{\mathrm{c}}[\rho(t)]=&\sum_{\omega, \alpha} \gamma^{(\alpha)}(\omega)\sum_{j} \Bigl(L^{(\alpha)}_j(\omega) \rho(t) L_j^{(\alpha)\dagger}(\omega)\nonumber\\
 & \ \ \ \ \ \ - \frac{1}{2} \{L_j^{(\alpha)\dagger}(\omega) L^{(\alpha)}_j(\omega), \rho(t)\}\Bigr),\label{current_source}\\
 \m{D}_{\mr{th}}[\rho(t)]=&\sum_{\omega, \omega'} \xi_{\omega\rightarrow \omega'}\sum_{j} \Bigl(L^{(\mr{th})}_j(\omega,\omega') \rho(t) L_j^{(\mr{th})\dagger}(\omega,\omega')\nonumber\\
 & \ \ \ \ \ \ - \frac{1}{2} \{L_j^{(\mr{th})\dagger}(\omega,\omega') L^{(\alpha)}_j(\omega,\omega'), \rho(t)\}\Bigr),\label{thermal_bath}
@@ -87,9 +87,16 @@ Forcusing on the setup in this letter in which we suppose that the effective mod
 \begin{align}
 \ev{\m{J}} = \mr{Tr}_{j, j+1}[-i(c^\dagger_{i+1}c_i-c^\dagger_i c_{i+1})\rho^{i, i+1}_{\mr{ss}}]\neq 0.\label{local_current}
 \end{align}
-We note that the conditions for the local steady state in Eq.~(\ref{local_current}) and for the effective Liouvillian in Eq.~(\ref{effective_Liouvillian}) result in the finite imaginary part of $\alpha_1\alpha_2^*$ and $\alpha_3\alpha_4^*$, that is the assymetric hopping term.\footnote{see the Supplemental Materials for the detail derivation.} Below 
+We note that the conditions for the local steady state in Eq.~(\ref{local_current}) and for the effective Liouvillian in Eq.~(\ref{effective_Liouvillian}) result in the finite imaginary part of $\alpha_1\alpha_2^*$ and $\alpha_3\alpha_4^*$, that is the assymetric hopping term. (see the Supplemental Materials for the detail derivation.\cite{}) Below we set $\alpha_1 = 1, \alpha_2 = -i, \alpha_3 = \alpha_4 = 0$ for $\alpha=l$ and $\alpha_1 = \alpha_2 = 0, \alpha_3 = 1, \alpha_4 = i$ for $\alpha=g$ as the simplest choice to satisfy the above conditions, and, when we consider the periodic boundary condition where we set $c_{l+1} = c_1$, we can summarize the ourmodel in wave number representation as
+\begin{align}
+\m{D}_{\mr{c}}[\rho(t)]& \nonumber\\
+=\sum_k &\Biggl[\gamma^{(l)}(\epsilon_k) (2-2\sin(k))\Bigl(c_k\rho(t)c_k^{\dagger} - \frac{1}{2}\{c_k^{\dagger}c_k, \rho(t)\}\Bigr)\nonumber\\
+&+\gamma^{(g)}(\epsilon_k) (2+2\sin(k))\Bigl(c_k^{\dagger}\rho(t)c_k - \frac{1}{2}\{c_kc_k^{\dagger}, \rho(t)\}\Bigr)\Biggr].\label{jump_current2}
+\end{align}
+We set the lattice constant to be unity. We note that, while the effective Hamiltonian of this model without the thermal bath is equivalent to the Hatano--Nelson model\cite{}, which is a non-Hermitian model with asymmetric hopping, the bulk steady state of this model is insensitive to the boundary condition and thus the analysis of the periodic-boundary should results in the same result as the analysis of the open-boundary condition\cite{supplemental_materials}.
+Below we analyze the steady state of this model and its effective temperature.
 
-\section{steady state proportional to $J^{1}$}\label{sec:results}
+\section{steady state analysis}\label{sec:results}
 bbb
 
 \section{Comparison to the linear response theory in isolated system}\label{sec:discussion}
