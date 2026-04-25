@@ -22,6 +22,12 @@
 \newcommand{\m}[1]{\mathcal{#1}}
 \newcommand{\mr}[1]{\mathrm{#1}}
 \newcommand{\bk}{\bm{k}}
+\newcommand{\sk}{\sin(k)}
+\newcommand{\pfk}{p^{(1)}_k}
+\newcommand{\pfkp}{p^{(1)}_{k'}}
+\newcommand{\epk}{\epsilon_k}
+\newcommand{\epkp}{\epsilon_{k'}}
+\newcommand{\p}{\partial}
 \newcommand{\ik}{\int \frac{d\bm{k}}{(2\pi)^d}}
 \newcommand{\iw}{\int_{-\infty}^{\infty} \frac{d\omega}{2\pi}}
 \newcommand{\trg}{\int \mathrm{Tr}(g)dk_xdk_y}
@@ -52,6 +58,15 @@ In the theoretical analysis of the isolated system under the electric field thro
 Recently, much effort has been made to analyze the steady state in the boundary-driven open system and it is revealed that the effective temperature of the expectation values of physical quantities is sometimes different from the bath temperature. Although some models can be solved exactly, the analysis of the steady state of the boundary-driven open system is generally difficult, and the numerical analysis is often used. However, the numerical analysis of the boundary-driven open system is also difficult because of the large Hilbert space of the system and the bath. Thus, based on the analogy from the periodically driven system in which the Floquet theory, high-frequency expansion, and its effective Hamiltonian are useful to analyze the prethermalized state, the effective models with translational symmetry would be much easier and useful to analyze the effective bulk steady state under current.
 
 In this letter, we introduce the asymmetric-hopping model which holds the translational symmetry as an effective model of the boundary-driven open system under current. We have analyzed the steady state of this model and its effective temperature, and revealed that the effective temperature of the system under current is linearly proportional to the current density, which is similar to the experimental observation in Ref.\cite{}. We also discuss the relation between the effective temperature and the Joule heating.
+
+\section{Analysis in Boundary-Driven System}\label{sec:boundary}
+First, we analyze the effective temperature, dissipation and current in the bulk resion in boundary-driven sytem. For the simplicity, we consider the spinless free Fermion model coupled to the two different bath. In order to calculate the steady state, we use the universal Lindblad equation beccause it guarantees the positivity without the secular approximation\cite{} that affects the bulk charge transport\cite{}, which reads,
+\begin{align}
+    \dt \rho(t) = .\label{NR}
+\end{align}
+Fig.~1 shows that the gain ($c^\dagger_i \rho c_j$) and loss ($c_i \rho c^\dagger_j$) terms included in $\m{D}^{(1)}$ and $\m{D}^{(2)}$ in Eq.~\ref{NR} when we set the bath temperature $T^{(\mr{l/r})}_{\mr{B}}=0.02$ and the left bath is filled while right bath is empty for the energy regime of the system. The boundary driving cause the jump term only at the edge and thus the local charge current must be constant in the bulk due to the charge conservation.  
+
+
 
 \section{Model and Setup}\label{sec:model}
 For the analysis of the steady state under current, we introduce the asymmetric-hopping model as an effective model of the boundary-driven open system under current. For simplicity, we restrict our model to the one-dimensional spinless fermion model, and the Liouvillian has the translational symmetry and is locally defined as
@@ -93,14 +108,52 @@ We note that the conditions for the local steady state in Eq.~(\ref{local_curren
 =\sum_k &\Biggl[\gamma^{(l)}(\epsilon_k) (2-2\sin(k))\Bigl(c_k\rho(t)c_k^{\dagger} - \frac{1}{2}\{c_k^{\dagger}c_k, \rho(t)\}\Bigr)\nonumber\\
 &+\gamma^{(g)}(\epsilon_k) (2+2\sin(k))\Bigl(c_k^{\dagger}\rho(t)c_k - \frac{1}{2}\{c_kc_k^{\dagger}, \rho(t)\}\Bigr)\Biggr].\label{jump_current2}
 \end{align}
-We set the lattice constant to be unity. We note that, while the effective Hamiltonian of this model without the thermal bath is equivalent to the Hatano--Nelson model\cite{}, which is a non-Hermitian model with asymmetric hopping, the bulk steady state of this model is insensitive to the boundary condition and thus the analysis of the periodic-boundary should results in the same result as the analysis of the open-boundary condition\cite{supplemental_materials}.
-Below we analyze the steady state of this model and its effective temperature.
+We set the lattice constant to be unity.  We note that, while the effective Hamiltonian of this model without the thermal bath by setting $\gamma^{(l)}(\epsilon_k) = \gamma^{(g)}(\epsilon_k) = g$  is equivalent to the Hatano--Nelson model\cite{} which is a non-Hermitian model with asymmetric hopping, the bulk steady state of this model is insensitive to the boundary condition and thus the analysis of the periodic-boundary should results in the same result as the analysis of the open-boundary condition\cite{supplemental_materials}.
+Below we analyze the steady state of this model for $\gamma^{(l)}(\epsilon_k) = \gamma^{(g)}(\epsilon_k) = g$\footnote{Because this system-bath coupling cause the current, the current source bath should not be the thermal equilibrium and thus KMS(Kubo--Martin--Schwinger) condition should not be satisfied. Even though we use another setting for $\gamma^{(l/g)}(\epsilon_k)$, if the current source is not the thermal bath which has the same temperature as the other thermal bath, we can get the same results.} and its effective temperature.
 
 \section{steady state analysis}\label{sec:results}
-bbb
-
-\section{Comparison to the linear response theory in isolated system}\label{sec:discussion}
-ccccc
+In this letter, we focus on the expectation value of current and the effective temperature, and it is enough to consider the approximated steady state as
+\begin{align}
+\rho_{\mr{ss}}&\simeq \prod_k\otimes\rho_{\mr{ss}}(k),\label{k_prod}\\
+\rho_{\mr{ss}}(k) &= p_k \ket{k}\bra{k} + (1-p_k)\ket{0}_k \bra{0}_k.\label{k_diag}
+\end{align}
+For the first step to analyze the steady state, we consider the up to first order of $h$; the parameter should be determined from the strength of the local current in the steady state of the original model. It is described by
+\begin{align}
+    p_k = f_k + h p^{(1)}_k + O[h^2], \label{perturb}
+\end{align}
+where $f_k$ is the Fermi distribution function as $f_k = 1/(1+\exp[-\beta(\epsilon_k-\mu)])$.
+By inserting Eq.~(\ref{perturb}) into Eq.~(\ref{k_prod}) and Eq.~(\ref{k_diag}), we can get the equation $p^{(1)}_k$ satisfies as
+\begin{align}
+    0=&-2h(1-\sk)f_k + 2h(1+\sk)(1-f_k)\nonumber\\
+    & \  + h\sum_{k'}\Bigl[\xi_{\epkp\rightarrow\epk}\bigl\{\pfkp(1-f_k) - f_{k'}\pfk \bigr\}\nonumber\\
+    & \ \ \ \ \ \ \ \ -\xi_{\epk\rightarrow\epkp}\bigl\{\pfk(1-f_{k'}) - f_{k}\pfkp \bigr\}\Bigr],
+\end{align}
+and then we get
+\begin{align}
+    hp^{(1)}_k &= \delta\rho^{(\mr{c})}_k + \delta\rho^{(\mr{th})}_k\label{results}\\% + \delta\rho^{(\mu)}_k\label{results}\\
+    \delta\rho^{(\mr{c})}_k&=2h \sk\frac{\sech(\beta\tilde{\epk}/2)}{\sum_{k'}\xi_{\epkp\rightarrow\epk}\sech(\beta\tilde{\epkp}/2)}\\
+    \delta\rho^{(\mr{th})}_k&=2h\frac{\sech(\beta\tilde{\epk}/2)\tanh(\beta\tilde{\epk}/2)}{\sum_{k'}\xi_{\epkp\rightarrow\epk}\sech(\beta\tilde{\epkp}/2)}.%\\
+    %\delta\rho^{(\mu)}_k&=
+\end{align}
+We note that $\delta\rho_k^{(\mr{c})}$ is the current driving term of the steady state as $\ev{J} = \tr[J\rho^{(1)}_{\mr{ss}}] = \tr[J\rho^{(1)(\mr{c})}_{\mr{ss}}]$, and $\delta\rho_k^{(\mr{th})}$ represents heat emmition to the bath in the steady state as $\ev{\dt Q_{s\rightarrow b}} = \tr[\dt Q_{s\rightarrow b}\rho^{(1)}_{\mr{ss}}] = \tr[\dt Q_{s\rightarrow b}\rho^{(1)(\mr{th})}_{\mr{ss}}]$. 
+First, in zero temeprature limit, we can approximate as $\beta\sech(\beta\tilde{\epk}/2)\simeq 2\pi \delta(\tilde{\epk})$, and the expectation value of current  reads as
+\begin{align}
+    \ev{J} &\simeq \sum_k \tau_k v_k^2\delta(\tilde{\epk}) \left(\frac{h}{t}\right)\\
+            &\simeq \tau D(\epsilon_F) v^2_F \left(\frac{h}{t}\right),\\
+    \frac{1}{\tau_k} &= \sum_{k'}\xi_{\epkp\rightarrow\epk}\sech(\beta\tilde{\epkp}/2),\label{linear-like}
+\end{align}
+where $v_k = \p\epk/\p k$ is the velocity, $v_F = |\p\epk/\p k|_{\epk=0}$ is the fermi velocity, and $D(\epsilon_F)$ is the density of states at the Fermi level, and we set the electron charge $e$ as unity. We approximate $\tau_k = \tau$ to get Eq.~(\ref{linear-like}). Eq.~(\ref{linear-like}) corresponds to the result from the linear response theory when $h/t$ equals to the electric field $E$.
+Moreover, approximating $\sinh(\beta\epk/2)\simeq \beta\epk/2$ and using $\sech^2(\beta\epk/2)=\beta (\p f/\p\omega)_{\epk}/4$, we can derive
+\begin{align}
+    \delta\rho^{(\mr{th})}_k&\simeq 4h\tau_k \tilde{\epk} \left(-\frac{\p f}{\p\omega}\right) \\
+    &= -4\beta h\tau_k \left(\frac{\p f}{\p\beta}\right) = \delta\beta\left(\frac{\p f}{\p\beta}\right),\label{effT}
+\end{align}
+where $\delta\beta = -4\beta h \tau_k$, which reads $\delta T/T = 4 h\tau_k$. Thus, $\delta\rho_k^{(\mr{th})}$ can be considered as the increase of the effective temperature and it cause the heat emmition to the thermal bath. By using Eq.~(\ref{linear-like}) and Eq.~(\ref{effT}), we can derive the relation between the increase of the effective temperature and the current expectation value as
+\begin{align}
+    \frac{\delta T}{T} \simeq \frac{8 \ev{J}}{WD(\epsilon_F)}. % \simeq \frac{4\pi^2}{3}\frac{J}{WC_e},
+\end{align}
+%where $C_e = \pi^2k_BD(\epsilon_F)/3$ is the electron heat capacity. 
+Here we get the linear dependence of effective temperature increase to the current. We note that, although Eq.(\ref{linear-like}) corresponds to the results from th e linear response theory at $h/t = E$, it does not mean that $h$ is always linearly proportional to $E$ and, in general, $h$ is the control parameter determined by the current in the steady state.
 
 \section{Summary and Discussion}\label{sec:conclusion}
 In summary, we have defined a generalized quantum metric(GQM) on the BZ using the single-particle Green's function in interacting systems. The GQM is based on the optical conductivity of the system. The major difference from the previous work is that the GQM is written by the eigenvectors of the spectral function, not the Bloch wave functions.
