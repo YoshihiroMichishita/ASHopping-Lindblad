@@ -24,21 +24,6 @@ function parse_symbol_list(value::AbstractString)
     return Symbol.(split(value, ","))
 end
 
-function blocks_for_method(m::gksl.TwoBathModel, method::Symbol)
-    if method == :nr
-        return nr_jump_blocks_by_bath(m)
-    elseif method == :redfield
-        return redfield_jump_blocks_by_bath(m)
-    else
-        error("method must be :nr or :redfield")
-    end
-end
-
-function add_correlator_content(blocks_by_bath, rho, sys)
-    corr = correlator_blocks(rho, sys)
-    return Dict(bath => attach_correlators(blocks_by_bath[bath], corr) for bath in keys(blocks_by_bath))
-end
-
 function main(args)
     opts = parse_args(args)
 
@@ -58,12 +43,8 @@ function main(args)
     with_corr = lowercase(get_opt(opts, "with-corr", "true")) in ("true", "1", "yes")
 
     sys, model = build_model(nsites, t, omega, mu, beta, Gamma, tau_c, bathkind)
-    blocks = blocks_for_method(model, method)
-
-    if with_corr
-        rho = default_rho_for_method(model, method)
-        blocks = add_correlator_content(blocks, rho, sys)
-    end
+    blocks = jump_blocks_for_method(model, method; with_weighted=with_corr)
+    correlator = with_corr ? correlator_for_method(model, method) : nothing
 
     metadata = Dict(
         "method" => String(method),
@@ -79,6 +60,9 @@ function main(args)
 
     prefix = String(method)
     save_bath_blocks(outdir, prefix, blocks; matrix_formats=matrix_formats, metadata=metadata)
+    if correlator !== nothing
+        save_correlator_matrix(outdir, prefix, correlator; matrix_formats=matrix_formats, metadata=metadata)
+    end
     save_heatmaps(outdir, prefix, blocks; components=components, image_formats=image_formats)
 
     println("Saved jump heatmap outputs to: ", outdir)

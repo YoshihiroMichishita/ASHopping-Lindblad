@@ -5,6 +5,7 @@ push!(LOAD_PATH, abspath(joinpath(@__DIR__, "..")))
 import ASHoppingGKSL as gksl
 
 include(joinpath(@__DIR__, "..", "script", "jump_heatmap_lib.jl"))
+include(joinpath(@__DIR__, "..", "src2", "ASHoppingGKSL1P.jl"))
 
 function build_model_for_jump_heatmap(; nsites::Int = 3, t::Float64 = 1.0, omega::Float64 = 0.0,
                                       mu::Float64 = 0.8, beta::Float64 = 8.0,
@@ -45,17 +46,20 @@ end
     end
 
     @testset "Correlator and weighted matrices have consistent shapes" begin
-        rho = gksl.steady_state_tb_nr(model)
-        corr = JumpHeatmapLib.correlator_blocks(rho, sys)
         blocks = JumpHeatmapLib.nr_jump_blocks_by_bath(model)
-        weighted = JumpHeatmapLib.attach_correlators(blocks[1], corr)
+        C = ASHoppingGKSL1P.steady_correlator_nr(model)
+        weighted = JumpHeatmapLib.attach_weighted_from_C(blocks[1], C)
 
         @test Set(keys(weighted)) == weighted_keys
         @test size(weighted[:loss_weighted]) == (sys.n_sites, sys.n_sites)
         @test size(weighted[:gain_weighted]) == (sys.n_sites, sys.n_sites)
-        @test weighted[:loss_weighted] ≈ blocks[1][:loss_coeff] .* corr[:loss_corr] atol = 1e-10
-        @test weighted[:gain_weighted] ≈ blocks[1][:gain_coeff] .* corr[:gain_corr] atol = 1e-10
+        @test weighted[:loss_weighted] ≈ blocks[1][:loss_coeff] .* transpose(C) atol = 1e-10
+        @test weighted[:gain_weighted] ≈ blocks[1][:gain_coeff] .* (Matrix{ComplexF64}(I, sys.n_sites, sys.n_sites) - C) atol = 1e-10
     end
+end
+
+@testset "Jump heatmap wrapper surface" begin
+    @test !isdefined(JumpHeatmapLib, :default_rho_for_method)
 end
 
 @testset "Jump heatmap CLI" begin
@@ -73,8 +77,11 @@ end
     @test isfile(joinpath(outdir, "nr_bath1_loss_coeff_abs.png"))
     @test isfile(joinpath(outdir, "nr_bath1_loss_coeff_real.csv"))
     @test isfile(joinpath(outdir, "nr_bath1_loss_coeff.jld2"))
+    @test isfile(joinpath(outdir, "nr_correlator.jld2"))
+    @test isfile(joinpath(outdir, "nr_correlator_real.csv"))
+    @test isfile(joinpath(outdir, "nr_correlator_imag.csv"))
     @test !isfile(joinpath(outdir, "nr_bath1_loss_corr_abs.png"))
     @test !isfile(joinpath(outdir, "nr_bath1_pair_minus_coeff.jld2"))
     files = Set(readdir(outdir))
-    @test all(occursin.(Ref(r"_(loss|gain)_(coeff|weighted)"), collect(files)))
+    @test all(occursin.(Ref(r"(_(loss|gain)_(coeff|weighted))|(_correlator)"), collect(files)))
 end

@@ -1,6 +1,9 @@
 module ASHoppingGKSL1P
 
 using LinearAlgebra
+using CSV
+using DataFrames
+using JLD2
 
 push!(LOAD_PATH, abspath(joinpath(@__DIR__, "..")))
 import ASHoppingGKSL as gksl
@@ -9,6 +12,23 @@ export BilinearBasis,
        ReducedSpaceCache,
        bilinear_basis,
        get_reduced_space_cache,
+       nr_jump_blocks_by_bath_1p,
+       redfield_jump_blocks_by_bath_1p,
+       jump_blocks_by_bath_1p,
+       one_particle_correlator_for_method,
+       jump_blocks_with_weighted_1p,
+       attach_weighted_from_C,
+       central_block,
+       local_current_from_Cmid,
+       local_beta_mu_from_Cmid,
+       local_beta_from_real_offdiag,
+       load_correlator_jld2,
+       load_correlator_csv_pair,
+       load_correlator,
+       local_observables_from_C,
+       local_observables_from_file,
+       gamma_from_path,
+       collect_local_observables_over_gamma,
        reduced_annihilation_ops,
        reduced_creation_ops,
        reduced_bilinear_basis,
@@ -34,5 +54,9 @@ include("bilinear_basis.jl")
 include("nr_correlator.jl")
 include("redfield_correlator.jl")
 include("weighted_observables.jl")
+include("jump_heatmap_blocks.jl")
+include("local_observables.jl")
+include("local_observables_io.jl")
+include("local_observables_sweep.jl")
 
 end # module ASHoppingGKSL1P

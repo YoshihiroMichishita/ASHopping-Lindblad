@@ -59,13 +59,33 @@ Recently, much effort has been made to analyze the steady state in the boundary-
 
 In this letter, we introduce the asymmetric-hopping model which holds the translational symmetry as an effective model of the boundary-driven open system under current. We have analyzed the steady state of this model and its effective temperature, and revealed that the effective temperature of the system under current is linearly proportional to the current density, which is similar to the experimental observation in Ref.\cite{}. We also discuss the relation between the effective temperature and the Joule heating.
 
-\section{Analysis in Boundary-Driven System}\label{sec:boundary}
-First, we analyze the effective temperature, dissipation and current in the bulk resion in boundary-driven sytem. For the simplicity, we consider the spinless free Fermion model coupled to the two different bath. In order to calculate the steady state, we use the universal Lindblad equation beccause it guarantees the positivity without the secular approximation\cite{} that affects the bulk charge transport\cite{}, which reads,
+\section{Brief introduction to Boundary-Driven System}\label{sec:boundary}
+First, we shortly analyze the effective temperature, dissipation and current in the bulk region in boundary-driven system as an introduction to the next section. In this section, we would like to see the property that (i) the jump terms only appear at the edges and (ii) the local distribution has higher effective temperature than the edge bath. For simplicity, we consider the spinless free Fermion model coupled to two different baths. In order to calculate the steady state, we use the universal Lindblad equation because it guarantees the positivity without the secular approximation\cite{} that affects the bulk charge transport\cite{}, which reads,
 \begin{align}
-    \dt \rho(t) = .\label{NR}
+    \dt \rho(t) &= -i[\m{H},\rho(t)] + \m{D}^{(l)}[\rho] + \m{D}^{(r)}[\rho].\label{NR}\\
+    \m{D}^{(r/l)}[\rho] &= \sum_{i,j} \Bigl[\gamma^{(r/l)}_{l;ij}\Bigl(c_i \rho c_j^{\dagger} - \frac{1}{2}\{c_j^{\dagger}c_i, \rho\}\Bigr)\nonumber\\
+    & \ \ \ \ \ \ +\gamma^{(r/l)}_{g;ij}\Bigl(c_i^{\dagger} \rho c_j - \frac{1}{2}\{c_jc_i^{\dagger}, \rho\}\Bigr)\Bigr],\\
 \end{align}
-Fig.~1 shows that the gain ($c^\dagger_i \rho c_j$) and loss ($c_i \rho c^\dagger_j$) terms included in $\m{D}^{(1)}$ and $\m{D}^{(2)}$ in Eq.~\ref{NR} when we set the bath temperature $T^{(\mr{l/r})}_{\mr{B}}=0.02$ and the left bath is filled while right bath is empty for the energy regime of the system. The boundary driving cause the jump term only at the edge and thus the local charge current must be constant in the bulk due to the charge conservation.  
+where $c^{(\dagger)}_{i}$ is the annihilation (creation) operator for the spinless fermion at site i, $\m{H}$ is the system Hamiltonian, $t$ is the hopping parameter, and $\m{D}^{(l/r)}$ are the dissipators caused by the coupling to the left and right thermal baths.
+Fig.~\ref{fig:Fig1} shows that the gain ($c^\dagger_i \rho c_j$) and loss ($c_i \rho c^\dagger_j$) terms included in $\m{D}^{(l)}$ and $\m{D}^{(r)}$ in Eq.~\ref{NR} when we set the bath temperature $T^{(\mr{l/r})}_{\mr{B}}=0.02$ and the left bath is filled while right bath is empty for the energy regime of the system. The boundary driving cause the jump term only at the edge and thus the local charge current must be constant in the bulk due to the charge conservation.  
 
+Figure.~\ref{fig:Fig2} shows the current and the effective temperature at the central two sites in the steady state of the asymmetric-hopping model as a function of $\gamma$, which is the strength of the coupling between the system and the edge current source. The effective temperature is defined by fitting the local distribution to the Fermi distribution function. The current and the effective temperature increase as $\gamma$ increases, and the effective temperature are proportional to the exponential of the current and higher than the bath temperature. Similar behaviors have been reported also in the previous work\cite{}.
+
+\begin{figure}[t]
+\includegraphics[width=0.45\linewidth]{fig/nr_bath1_gain_coeff_abs.png}
+\includegraphics[width=0.45\linewidth]{fig/nr_bath1_loss_coeff_abs.png}
+\includegraphics[width=0.45\linewidth]{fig/nr_bath2_gain_coeff_abs.png}
+\includegraphics[width=0.45\linewidth]{fig/nr_bath2_loss_coeff_abs.png}
+\caption{The gain and loss terms in the Lindblad equation for the boundary-driven system. The heatmap show the coefficients of the jump terms for gain ($c^\dagger_i \rho c_j$) and loss ($c_i \rho c^\dagger_j$).
+\label{fig:Fig1}}
+\end{figure}
+
+\begin{figure}[t]
+\includegraphics[width=0.46\linewidth]{fig/JandTeff_vs_gamma.pdf}
+\includegraphics[width=0.46\linewidth]{fig/J_vs_Teff.pdf}
+\caption{The current and the effective temperature at the central two sites in the steady state of the asymmetric-hopping model. The upper panel shows the current and the effective temperature as a function of $\gamma$, which is the strength of the coupling between the system and the edge current source. The lower panel shows the log-log plot of the relation between the current and the effective temperature, which shows that the effective temperature is proportional to the exponential of the current.
+\label{fig:Fig2}}
+\end{figure}
 
 
 \section{Model and Setup}\label{sec:model}
@@ -153,17 +173,20 @@ where $\delta\beta = -4\beta h \tau_k$, which reads $\delta T/T = 4 h\tau_k$. Th
     \frac{\delta T}{T} \simeq \frac{8 \ev{J}}{WD(\epsilon_F)}. % \simeq \frac{4\pi^2}{3}\frac{J}{WC_e},
 \end{align}
 %where $C_e = \pi^2k_BD(\epsilon_F)/3$ is the electron heat capacity. 
-Here we get the linear dependence of effective temperature increase to the current. We note that, although Eq.(\ref{linear-like}) corresponds to the results from th e linear response theory at $h/t = E$, it does not mean that $h$ is always linearly proportional to $E$ and, in general, $h$ is the control parameter determined by the current in the steady state.
+Here we get the linear dependence of effective temperature increase to the current. We note that, although Eq.(\ref{linear-like}) corresponds to the results from the linear response theory at $h/t = E$, it does not mean that $h$ is always linearly proportional to $E$ and, in general, $h$ is the control parameter determined by the current in the steady state.
 
 \section{Summary and Discussion}\label{sec:conclusion}
-In summary, we have defined a generalized quantum metric(GQM) on the BZ using the single-particle Green's function in interacting systems. The GQM is based on the optical conductivity of the system. The major difference from the previous work is that the GQM is written by the eigenvectors of the spectral function, not the Bloch wave functions.
-Correlation effects are included via the self-energy in the single-particle Green's function. We have shown analytically that the GQM agrees with the existing definition in a noninteracting system at zero temperature and is positive semi-definite as necessary for a metric. Furthermore, we have pointed out the relationship between the GQM and the Chern number ignoring vertex corrections.
+In this letter, we have introduced the asymmetric-hopping model which holds the translational symmetry as an effective model for the bulk steady state of the boundary-driven open system under current, and, analyze the effective temperature and the current density in its steady state, which reveals that, the effective temperature increase is linearly proportional to the current density, similar to the experimental observation in Ref.\cite{}. 
 
-To numerically verify our results, we have analyzed the QWZ model, a toy model of a Chern insulator, with additional repulsive interaction.
-We have used the DMFT and NRG to obtain the self-energy of the system and calculate the GQM. To further diagnose the topology of the system, we have computed the Wilson Loop of the effective Hamiltonian at the Fermi energy. 
+At first, we have quickly analyzed the boundary-driven system and checked that the jump terms only appear at the edges and the local distribution has higher effective temperature than the edge bath. Then, we have shown that, by focusing on the lcoal bulk state under current, one-paritle local effective Liouvillian which has the steady state with finite local current expectation value can be defined must have the asymmetric hopping term in the jump operator. 
 
-With the help of the Wilson Loop analysis, we have found that the GQM tends to be larger in the topologically nontrivial phase than in the trivial phase. In addition, the inequality between the quantum volume and the Chern number still holds in the correlated system. Thus, the GQM inherits the properties of the conventional quantum metric even in interacting systems.
-We expect that the GQM affects the physical quantity as in free systems, and this point is left as future work.
+Because there is no jump term in the bulk region, the local current must be constant in the bulk due to the charge conservation, and thus the effective model with the asymmetric hopping term is expected to describe the bulk steady state under current. We have analyzed the steady state of this model under the simplest setup whose effective non-Hermitian Hamiltonian corresponds to Hatano--Nelson model, and revealed that the effective temperature increase is linearly proportional to the current density. 
+
+Our results imply that Hatano--Nelson model, which has been eagerly studied in the context of non-Hermitian physics, especially in the optics area, can emerge in the steady state of the solid state under current and be useful to analyze the effective temperature and the current in the steady state under current as some previous works have pointed out\cite{}.
+
+Although we have analyzed the simplest setup of the asymmetric-hopping model of one-dimensional spinless free fermions, it is interesting to analyze spinful and multi-orbital models, and the effect of the interaction on the effective temperature and the current in the steady state under current. Multi-orbital and spinful models may show us the relationship between the effective temperature increase and the quantum geometry, and the interaction may cause the nontrivial behavior of the effective temperature increase especially around at the phase transition.
+
+We hope that our work will be a step toward the understanding of the effective temperature and the current in the steady state under current, and thus the intrinsic current-induced phenomena in condensed matter physics.
 
 \section*{Acknowledgements}
 T. K deeply appreciates Ken Mochizuki, Tomoki Ozawa, Taisei Kitamura, and Shuntaro Sumita for their fruitful discussions. Y. M. is supported by RIKEN Special Postdoctoral Researcher Program and was partially supported by the WISE program. R.P. is supported by JSPS, KAKENHI Grant No. JP18K03511. 

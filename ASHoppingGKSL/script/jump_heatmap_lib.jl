@@ -9,16 +9,20 @@ using CairoMakie
 push!(LOAD_PATH, abspath(joinpath(@__DIR__, "..")))
 import ASHoppingGKSL as gksl
 
+include(joinpath(@__DIR__, "..", "src2", "ASHoppingGKSL1P.jl"))
+using .ASHoppingGKSL1P
+
 export build_model,
        nr_jump_blocks_by_bath,
        redfield_jump_blocks_by_bath,
-       correlator_blocks,
-       attach_correlators,
+       attach_weighted_from_C,
+       jump_blocks_for_method,
+       correlator_for_method,
+       save_correlator_matrix,
        save_bath_blocks,
        save_heatmaps,
        render_heatmap,
-       matrix_component,
-       default_rho_for_method
+       matrix_component
 
 function build_model(nsites::Int, t::Float64, omega::Float64, mu::Float64,
                      beta::Float64, Gamma::Float64, tau_c::Float64,
@@ -36,111 +40,34 @@ function build_model(nsites::Int, t::Float64, omega::Float64, mu::Float64,
     return sys, gksl.TwoBathModel(sys, b1, b2)
 end
 
-function empty_block_dict(n::Int)
-    return Dict(
-        :loss_coeff => zeros(ComplexF64, n, n),
-        :gain_coeff => zeros(ComplexF64, n, n),
-    )
-end
-
-function accumulate_coefficients!(blocks::Dict, coeff::ComplexF64,
-                                  u_left::AbstractVector{<:Complex},
-                                  v_left::AbstractVector{<:Complex},
-                                  u_right::AbstractVector{<:Complex},
-                                  v_right::AbstractVector{<:Complex})
-    blocks[:loss_coeff] .+= 2 * coeff .* (u_left * u_right')
-    blocks[:gain_coeff] .+= 2 * coeff .* (v_left * v_right')
-    return blocks
-end
-
 function nr_jump_blocks_by_bath(m::gksl.TwoBathModel)
-    n = m.sys.n_sites
-    jumps_by_bath = gksl.nr_jumps_by_bath(m)
-    results = Dict{Int, Dict{Symbol, Matrix{ComplexF64}}}()
-
-    for bath in 1:2
-        blocks = empty_block_dict(n)
-        for J in jumps_by_bath[bath]
-            u, v = gksl.operator_linear_coeffs_in_site_basis(J, m.sys)
-            accumulate_coefficients!(blocks, 1.0 + 0.0im, u, v, u, v)
-        end
-        results[bath] = blocks
-    end
-
-    return results
+    return ASHoppingGKSL1P.nr_jump_blocks_by_bath_1p(m)
 end
 
 function redfield_jump_blocks_by_bath(m::gksl.TwoBathModel)
-    n = m.sys.n_sites
-    results = Dict{Int, Dict{Symbol, Matrix{ComplexF64}}}()
+    return ASHoppingGKSL1P.redfield_jump_blocks_by_bath_1p(m)
+end
 
-    for bath in 1:2
-        blocks = empty_block_dict(n)
-        site = gksl.bath_site(m, bath)
-        spec = gksl.bath_by_index(m, bath)
-        ops = gksl.coupling_ops_by_frequency(m.sys, site)
-        freqs = gksl.frequency_list(ops)
-
-        for p in gksl.majorana_channels(), q in gksl.majorana_channels(), w in freqs, wp in freqs
-            Ap = ops[(p, w)]
-            Aq = ops[(q, wp)]
-
-            pref = (p == q) ? 1.0 : -1.0
-            gamma_w, eta_w = gksl.gamma_eta_from_phi(spec, p, q, w)
-            gamma_wp, eta_wp = gksl.gamma_eta_from_phi(spec, p, q, wp)
-            Gamma = 0.5 * (gamma_w + gamma_wp) - 1im * (eta_w - eta_wp)
-
-            u_p, v_p = gksl.operator_linear_coeffs_in_site_basis(Ap, m.sys)
-            u_q, v_q = gksl.operator_linear_coeffs_in_site_basis(Aq, m.sys)
-            accumulate_coefficients!(blocks, ComplexF64(pref * Gamma), u_q, v_q, u_p, v_p)
-        end
-
-        results[bath] = blocks
+function jump_blocks_for_method(m::gksl.TwoBathModel, method::Symbol; with_weighted::Bool = true)
+    if with_weighted
+        return ASHoppingGKSL1P.jump_blocks_with_weighted_1p(m, method)
     end
-
-    return results
-end
-
-function correlator_blocks(rho::AbstractMatrix{<:Complex}, sys::gksl.SystemParams)
-    c_ops, cd_ops = gksl.site_ops(sys)
-    n = sys.n_sites
-
-    loss_corr = zeros(ComplexF64, n, n)
-    gain_corr = zeros(ComplexF64, n, n)
-    pair_minus_corr = zeros(ComplexF64, n, n)
-    pair_plus_corr = zeros(ComplexF64, n, n)
-
-    for i in 1:n, j in 1:n
-        loss_corr[i, j] = tr(c_ops[i] * rho * cd_ops[j])
-        gain_corr[i, j] = tr(cd_ops[i] * rho * c_ops[j])
-        pair_minus_corr[i, j] = tr(c_ops[i] * rho * c_ops[j])
-        pair_plus_corr[i, j] = tr(cd_ops[i] * rho * cd_ops[j])
-    end
-
-    return Dict(
-        :loss_corr => loss_corr,
-        :gain_corr => gain_corr,
-        :pair_minus_corr => pair_minus_corr,
-        :pair_plus_corr => pair_plus_corr,
-    )
-end
-
-function attach_correlators(blocks::Dict{Symbol, Matrix{ComplexF64}},
-                            corr::Dict{Symbol, Matrix{ComplexF64}})
-    out = copy(blocks)
-    out[:loss_weighted] = out[:loss_coeff] .* corr[:loss_corr]
-    out[:gain_weighted] = out[:gain_coeff] .* corr[:gain_corr]
-    return out
-end
-
-function default_rho_for_method(m::gksl.TwoBathModel, method::Symbol)
     if method == :nr
-        return gksl.steady_state_tb_nr(m)
+        return nr_jump_blocks_by_bath(m)
     elseif method == :redfield
-        return gksl.steady_state_tb(m)
+        return redfield_jump_blocks_by_bath(m)
     else
         error("method must be :nr or :redfield")
     end
+end
+
+function attach_weighted_from_C(blocks::Dict{Symbol, Matrix{ComplexF64}},
+                                C::AbstractMatrix{<:Complex})
+    return ASHoppingGKSL1P.attach_weighted_from_C(blocks, C)
+end
+
+function correlator_for_method(m::gksl.TwoBathModel, method::Symbol)
+    return ASHoppingGKSL1P.one_particle_correlator_for_method(m, method)
 end
 
 function matrix_component(mat::AbstractMatrix{<:Complex}, component::Symbol)
@@ -196,6 +123,22 @@ function save_bath_blocks(outdir::AbstractString, prefix::AbstractString,
                 )))
             end
         end
+    end
+end
+
+function save_correlator_matrix(outdir::AbstractString, prefix::AbstractString,
+                                C::AbstractMatrix{<:Complex};
+                                matrix_formats::Vector{Symbol} = [:csv, :jld2],
+                                metadata::Dict{String, Any} = Dict{String, Any}())
+    mkpath(outdir)
+    base = joinpath(outdir, "$(prefix)_correlator")
+    if :csv in matrix_formats
+        save_matrix_csvs(base, C)
+    end
+    if :jld2 in matrix_formats
+        save_matrix_jld2(base * ".jld2", C; metadata=merge(metadata, Dict(
+            "matrix_name" => "correlator",
+        )))
     end
 end
 
