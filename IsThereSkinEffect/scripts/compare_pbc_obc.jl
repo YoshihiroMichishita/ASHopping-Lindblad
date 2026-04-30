@@ -34,6 +34,7 @@ density_fig = plot(
     marker = :circle,
     lw = 2,
     ylims = (0.0, 1.0),
+    tickfontsize = 14,guidefontsize = 16, legendfontsize = 14, titlefontsize = 18,
 )
 plot!(
     density_fig,
@@ -43,6 +44,7 @@ plot!(
     marker = :square,
     lw = 2,
     ylims = (0.0, 1.0),
+    tickfontsize = 14,guidefontsize = 16, legendfontsize = 14, titlefontsize = 18,
 )
 
 density_path = joinpath(@__DIR__, "pbc_obc_density.png")
@@ -60,6 +62,7 @@ current_fig = plot(
     marker = :circle,
     lw = 2,
     ylims = (0.0, 1.0),
+    tickfontsize = 14,guidefontsize = 16, legendfontsize = 14, titlefontsize = 18,
 )
 plot!(
     current_fig,
@@ -69,6 +72,7 @@ plot!(
     marker = :square,
     lw = 2,
     ylims = (0.0, 1.0),
+    tickfontsize = 14,guidefontsize = 16, legendfontsize = 14, titlefontsize = 18,
 )
 
 

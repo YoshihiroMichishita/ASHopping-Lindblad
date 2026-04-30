@@ -192,14 +192,103 @@ We hope that our work will be a step toward the understanding of the effective t
 T. K deeply appreciates Ken Mochizuki, Tomoki Ozawa, Taisei Kitamura, and Shuntaro Sumita for their fruitful discussions. Y. M. is supported by RIKEN Special Postdoctoral Researcher Program and was partially supported by the WISE program. R.P. is supported by JSPS, KAKENHI Grant No. JP18K03511. 
 The computation in this work has been done using the facilities of the Supercomputer Center, the Institute for Solid State Physics, and the University of Tokyo.
 
-\appendix
+%\appendix
  
-\section{Effect of dissipation on the GQM}
-\label{appendix_dissipation}
-Although $\eta$ should be infinitesimally small, it is finite in numerical calculations. In a noninteracting system, if $\eta$ is infinitesimally small, the integrand in Eq.~\ref{defGQM} becomes finite only when $\omega=E_n$ and $\omega+\omega_1=E_m$ due to the factor $A_n(\omega)A_m(\omega+\omega_1)$ in Eq.~\ref{GQM_A}. It follows that the real part of the symmetrized optical conductivity becomes finite only when the input frequency $\omega_1$ is equal to $E_m-E_n$. However, when $\eta$ is finite, the delta peaks in $A_n(\omega)$ and $A_m(\omega+\omega_1)$ obtain a finite width. Due to this broadening, the gap effectively becomes smaller than it would be for an infinitesimally small $\eta$, resulting in an increase of the GQM because of the factor $1/\omega_1$ in Eq.~(\ref{defGQM}). To confirm the validity of the above discussion, we investigated the $\eta$ dependence of the GQM in Fig.~\ref{fig:Fig5}. This figure shows that the general behavior of the GQM follows the behavior of the existing definition in the noninteracting system for any $\eta$. Figure~\ref{fig:Fig5} shows that the GQM becomes large when $\eta$ is increased. For any $\eta$, the difference between the existing quantum metric and the GQM becomes maximal at the $\mathrm{M}$ point of the BZ, where the gap is the smallest. 
-Because $\eta$ can be regarded as a scattering rate due to defects or impurities(\cite{PhysRevB.105.085154, PhysRevB.105.085139, PhysRevB.102.165151}), our result implies that the GQM will increase in the presence of the defects or impurities.
+%\section{Effect of dissipation on the GQM}
+%\label{appendix_dissipation}
+%Although $\eta$ should be infinitesimally small, it is finite in numerical calculations. In a noninteracting system, if $\eta$ is infinitesimally small, the integrand in Eq.~\ref{defGQM} becomes finite only when $\omega=E_n$ and $\omega+\omega_1=E_m$ due to the factor $A_n(\omega)A_m(\omega+\omega_1)$ in Eq.~\ref{GQM_A}. It follows that the real part of the symmetrized optical conductivity becomes finite only when the input frequency $\omega_1$ is equal to $E_m-E_n$. However, when $\eta$ is finite, the delta peaks in $A_n(\omega)$ and $A_m(\omega+\omega_1)$ obtain a finite width. Due to this broadening, the gap effectively becomes smaller than it would be for an infinitesimally small $\eta$, resulting in an increase of the GQM because of the factor $1/\omega_1$ in Eq.~(\ref{defGQM}). To confirm the validity of the above discussion, we investigated the $\eta$ dependence of the GQM in Fig.~\ref{fig:Fig5}. This figure shows that the general behavior of the GQM follows the behavior of the existing definition in the noninteracting system for any $\eta$. Figure~\ref{fig:Fig5} shows that the GQM becomes large when $\eta$ is increased. For any $\eta$, the difference between the existing quantum metric and the GQM becomes maximal at the $\mathrm{M}$ point of the BZ, where the gap is the smallest. 
+%Because $\eta$ can be regarded as a scattering rate due to defects or impurities(\cite{PhysRevB.105.085154, PhysRevB.105.085139, PhysRevB.102.165151}), our result implies that the GQM will increase in the presence of the defects or impurities.
 
 
-%\bibliography{paper.bib}
+\bibliography{paper.bib}
+
+\clearpage
+
+\renewcommand{\thesection}{S\arabic{section}}
+\renewcommand{\theequation}{S\arabic{equation}}
+\renewcommand{\thefigure}{S\arabic{figure}}
+
+%式番号、図番号を1からにリセット
+\setcounter{equation}{0}
+\setcounter{figure}{0}
+\setcounter{section}{0}
+
+\onecolumngrid
+\begin{center}
+{\large
+{\bfseries Supplemental Materials for \\ ``Equivalence of the effective non-hermitian Hamiltonians in the context of open quantum systems and strongly-correlated electron systems'' }}
+\end{center}
+
+
+\vspace{10pt}
+
+%\twocolumngrid
+
+%\section{Details of the Boundary Driven System in Sec.~\ref{sec:boundary}}
+
+
+\section{Proof of the Finite Asymmetric Hopping Term in the effective local Liouvillian}
+We use the three results in Sec.~\ref{sec:boundary} to prove that the effective local Liouvillian which has the steady state with finite local current expectation value must have the asymmetric hopping term in the jump operator. Because of the three results, which are (i) the jump terms only appear at the edges, (ii) the site-resolved particle density is uniform in the bulk, and (iii) the local current is finite and constant in the bulk, the local two-site steady state in the bulk is written as
+\begin{align}
+\rho^{i, i+1}_{\mr{ss}} = \begin{pmatrix}
+    \ket{0} & \ket{i} & \ket{i+1} & \ket{i, i+1}
+\end{pmatrix}\begin{pmatrix}
+    p_0 & 0 & 0 & 0\\
+    0 & n & r + ic & 0\\
+    0 & r - ic & n & 0\\
+    0 & 0 & 0 & p_d
+\end{pmatrix}\begin{pmatrix}
+    \bra{0}\\ \bra{i} \\ \bra{i+1} \\ \bra{i, i+1}
+\end{pmatrix},\label{local_steady_state}
+\end{align}
+where $\ket{0}$ is the vacuum state, $\ket{i}$ and $\ket{i+1}$ are the single-particle states at site $i$ and $i+1$, and $\ket{i, i+1}$ is the two-particle state at site $i$ and $i+1$. $p_0$, $n$, $r$, $c$, and $p_d$ are real numbers. The local current expectation value is given by $\ev{J} = 2c$. Thus, if the local current expectation value is finite, $c$ must be finite. Then we consider the local jump terms which are summarized as
+\begin{align}
+    \m{D}_{i, i+1}[\rho] =& \sum_{p,q=i, i+1}\Biggl[ \gamma^{(l)}_{pq}\Bigl(c_{p} \rho c_q^{\dagger} - \frac{1}{2} \{c_q^{\dagger} c_p, \rho\}\Bigr) + \gamma^{(g)}_{pq}\Bigl(c_{p}^{\dagger} \rho c_q - \frac{1}{2} \{c_q c_p^{\dagger}, \rho\}\Bigr)\Biggr].
+\end{align}
+Because we consider the Lindblad form of the local jump term, the coefficients satisfy
+\begin{align}
+\gamma^{(l)}_{i,i+1} &= \gamma^{(l)*}_{i+1,i}, \quad \gamma^{(g)}_{i,i+1} = \gamma^{(g)*}_{i+1,i}, \quad \gamma^{(l)}_{i,i} = \gamma^{(l)*}_{i,i}, \quad \gamma^{(g)}_{i+1,i+1} = \gamma^{(g)*}_{i+1,i+1},\\
+\gamma^{(l)}_{i,i}\gamma^{(l)}_{i+1,i+1} &\geq |\gamma^{(l)}_{i,i+1}|^2, \quad \gamma^{(g)}_{i,i}\gamma^{(g)}_{i+1,i+1} \geq |\gamma^{(g)}_{i,i+1}|^2.
+\end{align}
+When this jump terms and the local Hamiltonian has the local steady state in Eq.~(\ref{local_steady_state}), it satisfies
+\begin{align}
+    0 = \dt \rho^{i, i+1}_{\mr{ss}} &=-i[\m{H}^{i, i+1}, \rho^{i, i+1}_{\mr{ss}}] + \m{D}_{i, i+1}[\rho^{i, i+1}_{\mr{ss}}],\\
+    \m{H}^{i, i+1} &= -t(c_i^{\dagger} c_{i+1} + c_{i+1}^{\dagger} c_i).
+\end{align}
+Focusing on the off-diagonal element $\ket{i}\bra{i+1}$, we can get
+\begin{align}
+    0 =& -\frac{1}{2}(\gamma^{(l)}_{i,i} + \gamma^{(l)}_{i+1, i+1} + \gamma^{(g)}_{i,i} + \gamma^{(g)}_{i+1, i+1})(r + ic) - (\gamma^{(l)}_{i,i+1} + \gamma^{(g)}_{i+1, i})n  + (\gamma^{(g)}_{i, i+1}p_0 + \gamma^{(l)}_{i+1, i}p_d),\label{off-diagonal}\\
+    \Rightarrow & -\frac{1}{2}(\gamma^{(l)}_{i,i} + \gamma^{(l)}_{i+1, i+1} + \gamma^{(g)}_{i,i} + \gamma^{(g)}_{i+1, i+1})c - \mr{Im}[\gamma^{(l)}_{i,i+1} + \gamma^{(g)}_{i+1, i}]n  + (\mr{Im}[\gamma^{(g)}_{i, i+1}]p_0 + \mr{Im}[\gamma^{(l)}_{i+1, i}]p_d) = 0.\label{imaginary_part}
+\end{align}
+If $c$ is finite, $\mr{Im}[\gamma^{(l)}_{i,i+1} + \gamma^{(g)}_{i+1, i}]$ or $\mr{Im}[\gamma^{(g)}_{i, i+1}]p_0 + \mr{Im}[\gamma^{(l)}_{i+1, i}]p_d$ must be finite. Thus the asymmetric hopping term in the jump operator must be finite to have the local steady state with finite local current expectation value when site-resolved particle density is uniform.
+
+\section{Validity of choice of the jump operator in Section \ref{sec:model}}
+Supposing that the coefficients $\alpha_i$ in the Liouvillian operator in Eq.~(\ref{jump_op_current}) have the same norm, the Liouvillian operator which cause the assymetric hopping term can be written as
+\begin{align}
+L_j^{(l)} =&  a^{(l)}(c_j + e^{i\alpha}c_{j+1}), \quad L_j^{(g)} = a^{(g)}(c_j^{\dagger} + e^{-i\tilde{\alpha}}c_{j+1}^{\dagger}).\label{jump_op_current2}
+\end{align}
+When we consider the real part in Eq.~(\ref{off-diagonal}), we can get
+\begin{align}
+    0 =& -\frac{1}{2}(\gamma^{(l)}_{i,i} + \gamma^{(l)}_{i+1, i+1} + \gamma^{(g)}_{i,i} + \gamma^{(g)}_{i+1, i+1})r - \mr{Re}[\gamma^{(l)}_{i,i+1} + \gamma^{(g)}_{i+1, i}]n  + (\mr{Re}[\gamma^{(g)}_{i, i+1}]p_0 + \mr{Re}[\gamma^{(l)}_{i+1, i}]p_d).\label{real_part}
+\end{align}
+By inseting Eq.~(\ref{jump_op_current2}) into Eq.~(\ref{imaginary_part}) and Eq.~(\ref{real_part}), we can get
+\begin{align}
+    \frac{c}{r} &= \frac{-\mr{Im}[\gamma^{(l)}_{i,i+1} + \gamma^{(g)}_{i+1, i}]n  + (\mr{Im}[\gamma^{(g)}_{i, i+1}]p_0 + \mr{Im}[\gamma^{(l)}_{i+1, i}]p_d)}{-\mr{Re}[\gamma^{(l)}_{i,i+1} + \gamma^{(g)}_{i+1, i}]n  + (\mr{Re}[\gamma^{(g)}_{i, i+1}]p_0 + \mr{Re}[\gamma^{(l)}_{i+1, i}]p_d)}\nonumber\\
+    &= \frac{a^{(l)}\sin(\alpha)(p_d-n) + a^{(g)}\sin(\tilde{\alpha})(p_0-n)}{a^{(l)}\cos(\alpha)(p_d-n) + a^{(g)}\cos(\tilde{\alpha})(p_0-n)}.\label{c_over_r}
+\end{align}
+Because, in our boundary-driven model, $r$ satisfies $r = \tanh(\beta t/2)$ and $\beta t \ll 1$, $c/r \gg 1$ for the finite current expectation value, and thus $\tan(\alpha)$ and $\tan(\tilde{\alpha})$ must be large. Therefore, we can approximate $\alpha \simeq \pi/2$ and $\tilde{\alpha} \simeq \pi/2$, which corresponds to the choice of the jump operator in Section \ref{sec:model}.
+
+\section{Boundary-Condition Dependence of the Steady State of the Asymmetric-Hopping Model}
+Here we numerically show that the bulk steady state of the asymmetric-hopping model is insensitive to the boundary condition. We analyze the steady state of the asymmetric-hopping model under the open-boundary condition, and compare it with the steady state under the periodic-boundary condition. Fig.~\ref{fig:boundary_condition} shows that the local distribution and the current expectation value in the bulk region are almost same between these two boundary conditions, which implies that the bulk steady state of this model is insensitive to the boundary condition. This result supports our expectation that the effective model with the asymmetric hopping term can describe the bulk steady state under current.
+\begin{figure}[b]
+\includegraphics[width=0.46\linewidth]{fig/JandTeff_vs_gamma.pdf}
+\includegraphics[width=0.46\linewidth]{fig/J_vs_Teff.pdf}
+\caption{The current and the effective temperature at the central two sites in the steady state of the asymmetric-hopping model. The upper panel shows the current and the effective temperature as a function of $\gamma$, which is the strength of the coupling between the system and the edge current source. The lower panel shows the log-log plot of the relation between the current and the effective temperature, which shows that the effective temperature is proportional to the exponential of the current.
+\label{fig:boundary_condition}}
+\end{figure}
+
+
+\section{Derivation of the Steady State of the Asymmetric-Hopping Model}
+
 
 \end{document}

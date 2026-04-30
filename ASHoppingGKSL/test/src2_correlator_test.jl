@@ -195,4 +195,41 @@ end
         @test sweep.mu_eff ≈ zeros(3) atol = 1e-10
         @test sweep.current ≈ [2 * tmid * 0.01 * g for g in sweep.Gamma] atol = 1e-12
     end
+
+    @testset "isolated canonical correlator" begin
+        sys2 = gksl.SystemParams(2, 1.0, 0.0)
+        beta2 = 1.4
+        C2 = ASHoppingGKSL1P.isolated_canonical_correlator(sys2, beta2)
+        r2 = 0.5 * tanh(beta2 * sys2.t)
+        C2_expected = ComplexF64[0.5 r2; r2 0.5]
+
+        @test C2 ≈ C2_expected atol = 1e-12
+
+        iso2 = ASHoppingGKSL1P.isolated_local_observables(sys2, beta2)
+        @test iso2.C ≈ C2_expected atol = 1e-12
+        @test iso2.beta_eff ≈ 2 * beta2 atol = 1e-10
+        @test iso2.mu_eff ≈ 0.0 atol = 1e-10
+        @test iso2.current ≈ 0.0 atol = 1e-12
+
+        sys4 = gksl.SystemParams(4, 1.0, 0.0)
+        C4 = ASHoppingGKSL1P.isolated_canonical_correlator(sys4, 0.8)
+        @test C4 ≈ C4' atol = 1e-12
+        @test real(tr(C4)) ≈ 2.0 atol = 1e-12
+    end
+
+    @testset "global effective temperature" begin
+        sysg = gksl.SystemParams(4, 1.0, 0.0)
+        beta_ref = 1.3
+        eps_modes, U = gksl.single_particle_eigensystem(sysg)
+        occ = 1.0 ./ (exp.(beta_ref .* eps_modes) .+ 1.0)
+        Cth = ComplexF64.(U * Diagonal(occ) * U')
+
+        obs = ASHoppingGKSL1P.global_effective_temperature(Cth, sysg)
+        @test obs.beta_eff ≈ beta_ref atol = 1e-10
+        @test obs.mu_eff ≈ 0.0 atol = 1e-12
+        @test obs.mode_energies ≈ eps_modes atol = 1e-12
+        @test obs.mode_occupations ≈ occ atol = 1e-12
+        @test obs.offdiag_norm ≈ 0.0 atol = 1e-12
+        @test obs.fit_residual ≈ 0.0 atol = 1e-10
+    end
 end
