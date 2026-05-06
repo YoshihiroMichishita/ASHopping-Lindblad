@@ -13,8 +13,6 @@
 
 \newcommand{\rp}[1]{{\color{blue} #1}}
 \newcommand{\ym}[1]{{\color{red} #1}}
-%\newcommand{\tr}[1]{\mathrm{Tr}\bigl[{#1}\bigr]}
-%\newcommand{\Tr}[1]{\mathrm{Tr}\Bigl[{#1}\Bigr]}
 \newcommand{\TrL}[1]{\mathrm{Tr}\Bigl[{#1}}
 \newcommand{\ReB}[1]{\mathrm{Re}\Bigl[{#1}\Bigr]}
 \newcommand{\ReBL}[1]{\mathrm{Re}\Bigl[{#1}}
@@ -42,7 +40,8 @@
 \affiliation{Department of Physics, Saitama University, Saitama 338-8570, Japan}
     \date{\today} 
 \begin{abstract}
-    One of the central goals in condensed matter physics is to control the phase of matter and to utilize its response properties. Recently, much effort has been made to design the phase and functionality not only in equilibrium but also in non-equilibrium states. Although the exploration of current-induced phenomena is an important direction with many attractive experimental reports, it remains difficult to separate intrinsic current-induced effects from Joule-heating effects in experiments and to theoretically analyze the steady state of large systems under current. In this letter, we introduce the asymmetric-hopping model as an effective model of the boundary-driven open system under current, and analyze the steady state of this model and its effective temperature. We reveal that, in one of the simplest setup, the effective model corresponds to Hatano--Nelson model extended to an open system, and the effective temperature increase is linearly proportional to the current density, which is similar to the experimental observation. Our results provide a useful effective model to analyze the steady state under current and to distinguish the intrinsic current-induced phenomena from the heating effect.
+    Current-induced phenomena are often obscured by Joule heating, and their steady states are difficult to analyze in large open systems. We introduce a translationally invariant asymmetric-hopping model as an effective bulk description of boundary-driven systems under current. In a minimal case, it corresponds to an open-system Hatano--Nelson model. We find that the effective temperature rises linearly with current density, as observed experimentally. The model provides a useful tool for separating intrinsic current-induced effects from heating.
+    %One of the central goals in condensed matter physics is to control the phase of matter and to utilize its response properties. Recently, much effort has been made to design the phase and functionality not only in equilibrium but also in non-equilibrium states. Although the exploration of current-induced phenomena is an important direction with many attractive experimental reports, it remains difficult to separate intrinsic current-induced effects from Joule-heating effects in experiments and to theoretically analyze the steady state of large systems under current. In this letter, we introduce the asymmetric-hopping model as an effective model of the boundary-driven open system under current, and analyze the steady state of this model and its effective temperature. We reveal that, in one of the simplest setup, the effective model corresponds to Hatano--Nelson model extended to an open system, and the effective temperature increase is linearly proportional to the current density, which is similar to the experimental observation. Our results provide a useful effective model to analyze the steady state under current and to distinguish the intrinsic current-induced phenomena from the heating effect.
 \end{abstract}
 \keywords{}
 \maketitle
@@ -55,11 +54,9 @@ In the theoretical analysis of the isolated system under the electric field thro
 Recently, much effort has been made to analyze the steady state in the boundary-driven system (BDS)\cite{Wichterich2007-mg, Prosen2008-bm, Prosen2011-wp, Prosen2014-xx, Landi2022-gk, Kempa2026-fm} and it is revealed that the effective temperature of the expectation values of physical quantities is sometimes different from the bath temperature\cite{Landi2022-gk}. Although some models can be solved exactly, the analysis of the steady state of the BDS is generally difficult, and the numerical analysis is often used. However, the numerical analysis of the BDS is also difficult because of the large Hilbert space of the system and the bath. Thus, effective models with translational symmetry would be much simpler and useful to analyze the effective bulk steady state under current.
 
 In this letter, we introduce the asymmetric-hopping model which holds the translational symmetry as an effective model of the BDS under current. We have analyzed the steady state of this model and its effective temperature, and revealed that the effective temperature of the system under current is linearly proportional to the current density, which is similar to the experimental observation in Ref.\cite{Ootsuki2025-em}. 
-%We also discuss the relation between the effective temperature and the Joule heating.
 
 \
 
-%\section{Brief introduction to Boundary-Driven System}\label{sec:boundary}
 {\it{Brief Introduction to Boundary-Driven System}} --
 First, we briefly analyze the particle distribution, the effective temperature, dissipation, and current in the bulk region in BDS as an introduction to the next section. In this section, we examine the following properties: (i) the jump terms only appear at the edges, (ii) the particle distribution is uniform in the bulk, and (iii) the local distribution has higher effective temperature than the edge bath, and these properties are essential for deriving the effective model for the bulk region. For simplicity, we consider a spinless free-fermion model coupled to two different baths. In order to calculate the steady state, we use the universal Lindblad equation because it guarantees the positivity without the secular approximation\cite{Nathan2020-mj,Davidovic2022-zp,Nathan2024-ag,Ikeuchi2025-wd} that affects the bulk charge transport\cite{Wichterich2007-mg, Landi2022-gk}, which reads,
 \begin{align}
@@ -70,9 +67,9 @@ First, we briefly analyze the particle distribution, the effective temperature, 
 \end{align}
 where $c^{(\dagger)}_{i}$ is the annihilation (creation) operator for the spinless fermion at site i, $\m{H}$ is the system Hamiltonian, $t$ is the hopping parameter, and $\m{D}^{(l/r)}$ are the dissipators caused by the coupling to the left and right thermal baths.
 Fig.~\ref{fig:Fig1} shows the coefficients of the gain ($c^\dagger_i \rho c_j$) and loss ($c_i \rho c^\dagger_j$) terms included in $\m{D}^{(l)}$ and $\m{D}^{(r)}$ in Eq.~\ref{NR} when we set the bath temperature $T^{(\mr{l/r})}_{\mr{B}}=0.02$ and the left bath is filled while right bath is empty for the energy regime of the system. The boundary driving cause the jump terms to be strongly localized at the edge and thus the local charge current must be constant in the bulk due to the charge conservation.  
-Figure.~\ref{fig:Fig2}(a) and \ref{fig:Fig2}(b) show the site-dependence of the local occupation and the local current in the steady state of the boundary-driven system. Both quantities are uniform in the bulk region, which stems from the charge conservation and the jump term only at the edges.
+Fig.~\ref{fig:Fig2}(a) and (b) show the site-dependence of the local occupation and the local current in the steady state of the boundary-driven system. Both quantities are uniform in the bulk region, which stems from the charge conservation and the jump term only at the edges.
 
-Figure.~\ref{fig:Fig2} (c) and (d) shows the current and the local two-site effective temperature at the central two sites in the steady state as a function of $\gamma$, which is the strength of the coupling between the system and the edge current source. The effective temperature is defined by fitting the local distribution to the Fermi distribution function. We note that the local effective temperature is in general different from that of the whole system. The current and the effective temperature increase as $\gamma$ increases, and the effective temperature exhibits an approximately exponential dependence on the current and is higher than the bath temperature. Although the effective temperature shows a nonlinear dependence on the current over a wide range of the driving strength, its small-current behavior is approximately linear. This weak-driving regime is the regime addressed by the perturbative analysis in the following sections. 
+Fig.~\ref{fig:Fig2} (c) and (d) shows the current and the local two-site effective temperature at the central two sites in the steady state as a function of $\gamma$, which is the strength of the coupling between the system and the edge current source. The effective temperature is defined by fitting the local distribution to the Fermi distribution function. We note that the local effective temperature is in general different from that of the whole system. The current and the effective temperature increase as $\gamma$ increases, and the effective temperature exhibits an approximately exponential dependence on the current and is higher than the bath temperature. Although the effective temperature shows a nonlinear dependence on the current over a wide range of the driving strength, its small-current behavior is approximately linear. This weak-driving regime is the regime addressed by the perturbative analysis in the following sections. 
 
 
 
@@ -104,7 +101,6 @@ In addition, we have shown that the locally defined effective temperature in the
 
 \
 
-%\section{Model and Setup}\label{sec:model}
 {\it{Construction of the Effective Model}} --
 Here we introduce an effective model for the bulk region of the BDS whose steady state has finite local current and uniform particle distribution. 
 We start from the steady state of the BDS which we have analyzed in the previous section as
@@ -146,17 +142,6 @@ This term can be interpreted as an asymmetric hopping term because the effective
 \end{align}
 and the imaginary part of $\alpha_1\alpha_2^*$ and/or $\alpha_3\alpha_4^*$ emerges as the coefficient of the asymmetric hopping term $(c^\dagger_j c_{j+1} - \mr{h.c.})$ in the effective non-Hermitian Hamiltonian.
 This construction of the  effective model should be understood as a minimal local representation of the bulk steady state rather than a unique derivation of the full reduced Liouvillian. We use the results of the boundary-driven system, which are the uniform density and finite current at the bulk regime, as the constraints to determine the form of the effective model, resulting in the asymmetric hopping term. We then choose the simplest representative jump operators satisfying this condition and analyze their steady state after adding a thermal relaxation channel.
-\begin{comment}
-\begin{align}
-    &\m{H}^{(j,j+1)}_{\mr{eff}}\nonumber\\
-    &= \m{H}^{(j,j+1)} -\frac{i}{2} \sum_{\alpha} \Bigl[\gamma^{(l)}_{\alpha} L^{(l)\dagger}_{(j,\alpha)} L^{(l)}_{(j,\alpha)} + \gamma^{(g)}_{\alpha} L^{(g)\dagger}_{(j,\alpha)} L^{(g)}_{(j,\alpha)}\Bigr]\nonumber\\
-    &= (-t -\frac{i}{2}\sum_{\alpha}\mr{Re}\Bigl[\gamma^{(l)}_{\alpha} (\alpha_1\alpha_2^*)-\gamma^{(g)}_{\alpha}(\alpha_3\alpha_4^*)\Bigr])(c^\dagger_j c_{j+1} + \mr{h.c.})\nonumber\\
-    & \quad \quad +\frac{1}{2}\sum_{\alpha}\mr{Im}\Bigl[\gamma^{(l)}_{\alpha} (\alpha_1\alpha_2^*)-\gamma^{(g)}_{\alpha}(\alpha_3\alpha_4^*)\Bigr](c^\dagger_j c_{j+1} - \mr{h.c.})\nonumber\\
-    & \quad \quad \quad -\frac{i}{2}\sum_{\alpha}\Bigl[\gamma^{(l)}_{\alpha}|\alpha_1|^2c^\dagger_j c_j + \gamma^{(g)}_{\alpha}|\alpha_3|^2c_j c^\dagger_j\Bigr]\nonumber\\
-    & \quad \quad \quad -\frac{i}{2}\sum_{\alpha}\Bigl[\gamma^{(l)}_{\alpha}|\alpha_2|^2c^\dagger_{j+1} c_{j+1} + \gamma^{(g)}_{\alpha}|\alpha_4|^2 c_{j+1}c^\dagger_{j+1}\Bigr],\label{eff_NH_Ham}
-\end{align}
-and the second term in the right-hand side of the last equality gives opposite corrections to the hopping amplitudes in the two directions.
-\end{comment}
  
 Below, we consider a single $\alpha$ channel and set $(\alpha_1, \alpha_2, \alpha_3, \alpha_4) = (1, -i, 1, i)$ as the simplest choice to satisfy the above conditions for the finite local current. We note that we can partially justify this choice of $\alpha$ when the effective local temperature is much higher than the hopping amplitude.\cite{Supple} 
 
@@ -181,7 +166,6 @@ Our model is described by the following Lindblad equation as
 \end{align}
 In this setup, while $\m{D}_{\mr{th}}$ represents the thermal bath, $\tilde{\m{D}}_{\mr{eff}}$ represents the current source inherited from the boundary driving and $h$ is determined from the strength of the local current in the steady state of the original BDS. Thus, different from the analysis with electric field $E$, this model is directly described by the parameter $h$ related to the current density. 
 
-%\section{steady state analysis}\label{sec:results}
 {\it{Steady-State Analysis}} --
 In this letter, we focus on the expectation value of current and the effective temperature, and it is sufficient to consider the approximated steady state as
 \begin{align}
@@ -209,27 +193,6 @@ and then we get
 \end{align}
 where $A_k = \sum_{k'}\sqrt{\xi_{\epkp\rightarrow\epk}\xi_{\epk\rightarrow\epkp}}\delta\rho_{k'}\cosh(\beta\tilde{\epkp}/2)$.
 We note that $\delta\rho_k^{(\mr{c})}$ is the current driving term of the steady state as $\ev{J} = \tr[J\rho_{\mr{ss}}] = \tr[J\rho^{(\mr{c})}_{\mr{ss}}]$, $\delta\rho_k^{(\mr{th})}$ represents heat emission into the bath in the steady state as $\ev{\dt Q_{s\rightarrow b}} = \tr[\dt Q_{s\rightarrow b}\rho_{\mr{ss}}] = \tr[\dt Q_{s\rightarrow b}\rho^{(\mr{th})}_{\mr{ss}}]$, and $\delta\rho_k^{(\mu)}$ represents the correction to chemical potential due to the coupling to the bath. 
-\begin{comment}
-\begin{align}
-    p_k = f_k + h p^{(1)}_k + O[h^2], \label{perturb}
-\end{align}
-where $f_k$ is the Fermi distribution function as $f_k = 1/(1+\exp[\beta(\tilde{\epsilon_k})])$ where $\tilde{\epsilon_k} = \epk -\mu$ and $\beta$ equals to the inverse temperature of the thermal bath.
-By inserting Eq.~(\ref{perturb}) into Eq.~(\ref{k_prod}) and Eq.~(\ref{k_diag}), we can get the equation $p^{(1)}_k$ satisfies as
-\begin{align}
-    0=&-2h(1-\sk)f_k + 2h(1+\sk)(1-f_k)\nonumber\\
-    & \  + h\sum_{k'}\Bigl[\xi_{\epkp\rightarrow\epk}\bigl\{\pfkp(1-f_k) - f_{k'}\pfk \bigr\}\nonumber\\
-    & \ \ \ \ \ \ \ \ -\xi_{\epk\rightarrow\epkp}\bigl\{\pfk(1-f_{k'}) - f_{k}\pfkp \bigr\}\Bigr],\label{ss_equation}
-\end{align}
-and then we get
-\begin{align}
-    hp^{(1)}_k &= \delta\rho^{(\mr{c})}_k + \delta\rho^{(\mr{th})}_k + \delta\rho^{(\mu)}_k,\label{results}\\% + \delta\rho^{(\mu)}_k\label{results}\\
-    \delta\rho^{(\mr{c})}_k&=2h \sk\frac{\sech(\beta\tilde{\epk}/2)}{\sum_{k'}\sqrt{\xi_{\epkp\rightarrow\epk}\xi_{\epk\rightarrow\epkp}}\sech(\beta\tilde{\epkp}/2)},\label{current_term}\\
-    \delta\rho^{(\mr{th})}_k&=2h\frac{\sech(\beta\tilde{\epk}/2)\tanh(\beta\tilde{\epk}/2)}{\sum_{k'}\sqrt{\xi_{\epkp\rightarrow\epk}\xi_{\epk\rightarrow\epkp}}\sech(\beta\tilde{\epkp}/2)},\label{thermal_term}\\
-    \delta\rho^{(\mu)}_k&=2h\frac{\sech^2(\beta\tilde{\epk}/2)A_k}{\sum_{k'}\sqrt{\xi_{\epkp\rightarrow\epk}\xi_{\epk\rightarrow\epkp}}\sech(\beta\tilde{\epkp}/2)},\label{chemical_potential_term}
-\end{align}
-where $A_k = \sum_{k'}\sqrt{\xi_{\epkp\rightarrow\epk}\xi_{\epk\rightarrow\epkp}}\delta\rho_{k'}^{(1)}\cosh(\beta\tilde{\epkp}/2)$.
-We note that $\delta\rho_k^{(\mr{c})}$ is the current driving term of the steady state as $\ev{J} = \tr[J\rho^{(1)}_{\mr{ss}}] = \tr[J\rho^{(1)(\mr{c})}_{\mr{ss}}]$, $\delta\rho_k^{(\mr{th})}$ represents heat emission to the bath in the steady state as $\ev{\dt Q_{s\rightarrow b}} = \tr[\dt Q_{s\rightarrow b}\rho^{(1)}_{\mr{ss}}] = \tr[\dt Q_{s\rightarrow b}\rho^{(1)(\mr{th})}_{\mr{ss}}]$, and $\delta\rho_k^{(\mu)}$ represents the correction to chemical potential due to the coupling to the bath. 
-\end{comment}
 
 First, in the zero-temperature limit, we can approximate as $\beta\sech(\beta\tilde{\epk}/2)\simeq 2\pi \delta(\tilde{\epk})$, and the expectation value of current  reads as
 \begin{align}
@@ -260,7 +223,6 @@ Because we can approximate $\sech(\beta\epk/2)\simeq 2\pi \delta(\tilde{\epk})/\
 
 \
 
-%\section{Summary and Discussion}\label{sec:conclusion}
 {\it{Summary and Discussion}} --
 In this letter, we have introduced a translationally invariant asymmetric-hopping model as an effective model for the bulk steady state of the BDS under current, and analyze the effective temperature and the current density in its steady state. We found that the effective temperature increase is linearly proportional to the current density, similar to the experimental observation in Ref.\cite{Ootsuki2025-em}. 
 
@@ -277,13 +239,11 @@ We hope that our work will be a step toward understanding the effective temperat
 
 \
 
-%\section*{Acknowledgements}
 {\it{Acknowledgements}} --
 Y. M sincerely appreciates Akito Daido, and Shuntaro Sumita for their fruitful comments at early stages of this work. Y. M. is supported by KAKENHI Grant Nos. JP24K16983 and JP26K17104. 
 The author has used ChatGPT to check the English grammar and improve the readability of the manuscript.
 
 
-%\bibliography{paper_test}
 \bibliography{reference/AnalyzeHeatingProblem,reference/BoundaryDrivenSystem,reference/Current-Induced,reference/HatanoNelson_Current,reference/Heating_UnderDiscussion,reference/MagneticManipulationByCurrent,reference/NonEquilibriumEngineering, reference/ULE}
 
 
@@ -301,7 +261,7 @@ The author has used ChatGPT to check the English grammar and improve the readabi
 \onecolumngrid
 \begin{center}
 {\large
-{\bfseries Supplemental Materials for \\ ``Construction of the effective model for the bulk steady state under current in Boundary-Driven Open Systems and Its Analysis'' }}
+{\bfseries Supplemental Materials for \\ ``Construction and Analysis of the effective model for the bulk steady state under current in Boundary-Driven Open Systems'' }}
 \end{center}
 
 
