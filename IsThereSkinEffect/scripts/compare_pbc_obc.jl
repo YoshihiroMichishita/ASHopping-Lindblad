@@ -4,9 +4,10 @@ Pkg.activate(joinpath(@__DIR__, ".."))
 
 using IsThereSkinEffect
 using Plots
+using LaTeXStrings
 
 params = ModelParams(32, 1.0, 0.4)
-comparison = compare_boundaries(params)
+comparison = compare_boundaries(params; dissipation = :eq15)
 
 println("PBC density = ", comparison.pbc.density)
 println("PBC density contrast = ", maximum(comparison.pbc.density) - minimum(comparison.pbc.density))
@@ -29,11 +30,12 @@ density_fig = plot(
     sites,
     comparison.pbc.density;
     label = "PBC",
-    xlabel = "site",
-    ylabel = "particle density",
+    xlabel = L"i",
+    ylabel = L"<n_i>",
     marker = :circle,
     lw = 2,
     ylims = (0.0, 1.0),
+    tickfontsize = 14,guidefontsize = 16, legendfontsize = 14, titlefontsize = 18,
 )
 plot!(
     density_fig,
@@ -43,9 +45,10 @@ plot!(
     marker = :square,
     lw = 2,
     ylims = (0.0, 1.0),
+    tickfontsize = 14,guidefontsize = 16, legendfontsize = 14, titlefontsize = 18,
 )
 
-density_path = joinpath(@__DIR__, "pbc_obc_density.png")
+density_path = joinpath(@__DIR__, "pbc_obc_density.pdf")
 savefig(density_fig, density_path)
 println("saved density plot to ", density_path)
 
@@ -55,11 +58,13 @@ current_fig = plot(
     pbc_bonds,
     comparison.pbc.currents;
     label = "PBC",
-    xlabel = "bond",
-    ylabel = "coherent current",
+    xlabel = L"i",
+    ylabel = L"<j_i>",
     marker = :circle,
     lw = 2,
-    ylims = (0.0, 1.0),
+    ylims = (-1.0, 0.0),
+    #ylims = (0.0, 1.0),
+    tickfontsize = 14,guidefontsize = 16, legendfontsize = 14, titlefontsize = 18,
 )
 plot!(
     current_fig,
@@ -68,10 +73,11 @@ plot!(
     label = "OBC",
     marker = :square,
     lw = 2,
-    ylims = (0.0, 1.0),
+    ylims = (-1.0, 0.0),
+    tickfontsize = 14,guidefontsize = 16, legendfontsize = 14, titlefontsize = 18,
 )
 
 
-current_path = joinpath(@__DIR__, "pbc_obc_current.png")
+current_path = joinpath(@__DIR__, "pbc_obc_current.pdf")
 savefig(current_fig, current_path)
 println("saved current plot to ", current_path)

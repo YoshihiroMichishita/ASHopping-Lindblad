@@ -5,6 +5,7 @@ using LinearAlgebra
 include("types.jl")
 include("hamiltonians.jl")
 include("dissipation.jl")
+include("dissipation_new.jl")
 include("steady_state.jl")
 include("observables.jl")
 
@@ -14,6 +15,8 @@ export BoundaryCondition,
     current_expectation,
     dissipative_site_net,
     dissipation_kernels,
+    dissipation_kernels_eq15,
+    dissipation_kernels_new,
     ModelParams,
     OBC,
     PBC,
