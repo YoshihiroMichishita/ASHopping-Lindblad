@@ -76,16 +76,16 @@ end
 
     @testset "NR correlator matches full-rho reference" begin
         _, rho_ref, _ = gksl.steady_states(model)
-        C_ref = correlator_from_rho(rho_ref, sys)
-        C_new = ASHoppingGKSL1P.steady_correlator_nr(model)
+        @show C_ref = correlator_from_rho(rho_ref, sys)
+        @show  C_new = ASHoppingGKSL1P.steady_correlator_nr(model)
         @test size(C_new) == (sys.n_sites, sys.n_sites)
         @test C_new ≈ C_ref atol = 1e-8
     end
 
     @testset "Redfield correlator matches full-rho reference" begin
         rho_ref, _, _ = gksl.steady_states(model)
-        C_ref = correlator_from_rho(rho_ref, sys)
-        C_new = ASHoppingGKSL1P.steady_correlator_redfield(model)
+        @show C_ref = correlator_from_rho(rho_ref, sys)
+        @show C_new = ASHoppingGKSL1P.steady_correlator_redfield(model)
         @test size(C_new) == (sys.n_sites, sys.n_sites)
         @test C_new ≈ C_ref atol = 1e-8
     end

@@ -5,6 +5,7 @@ using CSV
 using DataFrames
 using JLD2
 using CairoMakie
+using LaTeXStrings
 
 push!(LOAD_PATH, abspath(joinpath(@__DIR__, "..")))
 import ASHoppingGKSL as gksl
@@ -142,6 +143,21 @@ function save_correlator_matrix(outdir::AbstractString, prefix::AbstractString,
     end
 end
 
+function component_plot_settings(values::AbstractMatrix{<:Real}, component::Symbol; unit_range::Bool = true)
+    if component == :abs
+        if unit_range
+            return :viridis, (0.0, 1.0)
+        end
+        vmax = maximum(values)
+        vmax = vmax == 0 ? 1.0 : vmax
+        return :viridis, (0.0, vmax)
+    end
+
+    vmax = maximum(abs.(values))
+    vmax = vmax == 0 ? 1.0 : vmax
+    return :balance, (-vmax, vmax)
+end
+#=
 function component_plot_settings(values::AbstractMatrix{<:Real}, component::Symbol)
     if component == :abs
         vmax = maximum(values)
@@ -152,8 +168,39 @@ function component_plot_settings(values::AbstractMatrix{<:Real}, component::Symb
     vmax = maximum(abs.(values))
     vmax = vmax == 0 ? 1.0 : vmax
     return :balance, (-vmax, vmax)
-end
+end=#
 
+function render_heatmap(path::AbstractString, mat::AbstractMatrix{<:Complex};
+                        component::Symbol = :abs,
+                        title::AbstractString = "",
+                        unit_range::Bool = true)
+    values = matrix_component(mat, component)
+    cmap, crange = component_plot_settings(values, component; unit_range)
+
+    fig = Figure(size=(1020, 760))
+    ax = Axis(
+        fig[1, 1],
+        title=title,
+        xlabel=L"j",
+        ylabel=L"i",
+        xticks=collect(1:size(values, 2)),
+        yticks=collect(1:size(values, 1)),
+        titlesize=60,
+        xlabelsize=36,
+        ylabelsize=36,
+        xticklabelsize=32,
+        yticklabelsize=32,
+    )
+    hm = heatmap!(ax, 1:size(values, 2), 1:size(values, 1), values;
+                  colormap=cmap, colorrange=crange)
+    cb = Colorbar(fig[1, 2], hm, width=28)
+    colsize!(fig.layout, 2, 90)
+    cb.labelsize = 36
+    cb.ticklabelsize = 32
+    save(path, fig)
+    return path
+end
+#=
 function render_heatmap(path::AbstractString, mat::AbstractMatrix{<:Complex};
                         component::Symbol = :abs, title::AbstractString = "")
     values = matrix_component(mat, component)
@@ -174,15 +221,18 @@ function render_heatmap(path::AbstractString, mat::AbstractMatrix{<:Complex};
     Colorbar(fig[1, 2], hm, label=String(component))
     save(path, fig)
     return path
-end
+end=#
 
 function save_heatmaps(outdir::AbstractString, prefix::AbstractString,
                        blocks_by_bath::Dict{Int, Dict{Symbol, Matrix{ComplexF64}}};
                        components::Vector{Symbol} = [:abs],
                        image_formats::Vector{Symbol} = [:png])
     mkpath(outdir)
+    counts = 1
+    titles = [L"\gamma^{(l)}_{g;ij}", L"\gamma^{(l)}_{l;ij}", L"\gamma^{(r)}_{g;ij}", L"\gamma^{(r)}_{l;ij}"]
     for bath in sort(collect(keys(blocks_by_bath)))
         for (name, mat) in sort(collect(blocks_by_bath[bath]); by=first)
+            title = titles[counts]
             for component in components
                 for fmt in image_formats
                     path = joinpath(
@@ -191,9 +241,10 @@ function save_heatmaps(outdir::AbstractString, prefix::AbstractString,
                     )
                     render_heatmap(path, mat;
                                    component=component,
-                                   title="$(prefix) bath $(bath) $(String(name)) $(String(component))")
+                                   title=title)
                 end
             end
+            counts = (counts % 4) + 1
         end
     end
 end

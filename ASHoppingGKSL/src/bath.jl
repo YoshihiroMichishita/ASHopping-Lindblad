@@ -25,18 +25,20 @@ function make_bath(; Gamma::Float64, mu::Float64, beta::Float64, tau_c::Float64)
     Sigma = (w::Float64) -> begin
         f = fermi(w, mu, beta)
         #-im * Gamma * (1 - f) / (1 - im * w * tau_c)
-        -im * Gamma * (1 - f) / (1 - im * (w - mu) * tau_c)
+        #-im * Gamma * (1 - f) / (1 - im * (w - mu) * tau_c)
+        Gamma * (1 - f) / ((w - mu) + im/tau_c)
     end
     #TODO:SigmaTildeの符号あってるか確認
     SigmaTilde = (w::Float64) -> begin
         f = fermi(w, mu, beta)
         #-im * Gamma * f / (1 - im * w * tau_c)
-        -im * Gamma * f / (1 - im * (w - mu) * tau_c)
+        #-im * Gamma * f / (1 - im * (w - mu) * tau_c)
+        Gamma * f / ((w - mu) + im/tau_c)
     end
     return BathSpectrum(mu, beta, Sigma, SigmaTilde)
 end
 
-function make_bath_flat(; Gamma::Float64, mu::Float64, beta::Float64, tau_c::Float64)
+function make_bath2(; Gamma::Float64, mu::Float64, beta::Float64, tau_c::Float64)
     Sigma = (w::Float64) -> begin
         f = fermi(w, mu, beta)
         #-im * Gamma * (1 - f) / (1 - im * w * tau_c)
@@ -51,6 +53,7 @@ function make_bath_flat(; Gamma::Float64, mu::Float64, beta::Float64, tau_c::Flo
 end
 
 # mu is energy potential
+#=
 function make_bath2(; Gamma::Float64, mu::Float64, beta::Float64, tau_c::Float64)
     Sigma = (w::Float64) -> begin
         f = fermi(w, 0.0, beta)
@@ -61,4 +64,4 @@ function make_bath2(; Gamma::Float64, mu::Float64, beta::Float64, tau_c::Float64
         -im * Gamma * f / (1 - im * (w - mu) * tau_c)
     end
     return BathSpectrum(mu, beta, Sigma, SigmaTilde)
-end
+end=#
