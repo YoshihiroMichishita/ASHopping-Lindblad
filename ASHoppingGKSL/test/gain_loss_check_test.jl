@@ -18,12 +18,6 @@ function build_gain_loss_model(; nsites::Int = 3, t::Float64 = 1.0, omega::Float
     end
     return sys, gksl.TwoBathModel(sys, bath1, bath2)
 end
-#=
-function redfield_total_local_gain_loss_coeffs(m)
-    gain1, loss1 = gksl.redfield_local_gain_loss_coeffs(m, 1)
-    gain2, loss2 = gksl.redfield_local_gain_loss_coeffs(m, 2)
-    return gain1 + gain2, loss1 + loss2
-end=#
 
 @testset "Gain-Loss Coefficient Check" begin
     sys, model = build_gain_loss_model()
