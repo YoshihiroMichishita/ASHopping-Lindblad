@@ -21,6 +21,11 @@ function collect_local_observables_over_gamma(rootdir::AbstractString;
             beta_eff = obs.beta_eff,
             temp_eff = obs.temp_eff,
             mu_eff = obs.mu_eff,
+            beta_eff_energy = obs.beta_eff_energy,
+            temp_eff_energy = obs.temp_eff_energy,
+            mu_eff_energy = obs.mu_eff_energy,
+            energy_loc = obs.energy_loc,
+            number_loc = obs.number_loc,
             current = obs.current,
         ))
     end
@@ -32,6 +37,11 @@ function collect_local_observables_over_gamma(rootdir::AbstractString;
         beta_eff = [r.beta_eff for r in records],
         temp_eff = [r.temp_eff for r in records],
         mu_eff = [r.mu_eff for r in records],
+        beta_eff_energy = [r.beta_eff_energy for r in records],
+        temp_eff_energy = [r.temp_eff_energy for r in records],
+        mu_eff_energy = [r.mu_eff_energy for r in records],
+        energy_loc = [r.energy_loc for r in records],
+        number_loc = [r.number_loc for r in records],
         current = [r.current for r in records],
     )
 end

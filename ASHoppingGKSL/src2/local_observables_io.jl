@@ -43,6 +43,7 @@ end
 function local_observables_from_C(C::AbstractMatrix{<:Complex}, t::Real)
     Cmid, inds = central_block(C)
     thermo = local_beta_mu_from_Cmid(Cmid, t)
+    energy_thermo = local_energy_temperature_from_Cmid(Cmid, t)
     current = local_current_from_Cmid(Cmid, t)
     return (
         central_indices = inds,
@@ -54,6 +55,14 @@ function local_observables_from_C(C::AbstractMatrix{<:Complex}, t::Real)
         n_plus = thermo.n_plus,
         residual_diag = thermo.residual_diag,
         residual_imag = thermo.residual_imag,
+        beta_eff_energy = energy_thermo.beta_eff,
+        temp_eff_energy = energy_thermo.temp_eff,
+        mu_eff_energy = energy_thermo.mu_eff,
+        energy_loc = energy_thermo.energy_loc,
+        number_loc = energy_thermo.number_loc,
+        n_minus_energy = energy_thermo.n_minus_energy,
+        n_plus_energy = energy_thermo.n_plus_energy,
+        occupation_clamp_error_energy = energy_thermo.occupation_clamp_error,
         current = current,
     )
 end
