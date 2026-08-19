@@ -132,11 +132,25 @@ end
         @test obs.residual_diag ≈ 0.0 atol = 1e-12
         @test obs.residual_imag ≈ abs(yim) atol = 1e-12
 
+        energy_obs = ASHoppingGKSL1P.local_energy_temperature_from_Cmid(Cthermal, tmid)
+        @test energy_obs.energy_loc ≈ -tmid * nminus + tmid * nplus atol = 1e-12
+        @test energy_obs.number_loc ≈ nminus + nplus atol = 1e-12
+        @test energy_obs.beta_eff ≈ beta_ref atol = 1e-10
+        @test energy_obs.mu_eff ≈ mu_ref atol = 1e-10
+        @test energy_obs.n_minus_energy ≈ nminus atol = 1e-10
+        @test energy_obs.n_plus_energy ≈ nplus atol = 1e-10
+
         nminus_half = 1 / (exp(beta_ref * (-tmid)) + 1)
         nplus_half = 1 / (exp(beta_ref * tmid) + 1)
         r_half = 0.5 * (nminus_half - nplus_half)
         beta_half = ASHoppingGKSL1P.local_beta_from_real_offdiag(ComplexF64[0.5 r_half; r_half 0.5], tmid)
         @test beta_half.beta_eff ≈ beta_ref atol = 1e-10
+
+        energy_half = ASHoppingGKSL1P.local_energy_temperature_from_Cmid(ComplexF64[0.5 r_half; r_half 0.5], tmid)
+        beta_from_half_formula = (2 / tmid) * atanh(-energy_half.energy_loc / tmid)
+        @test energy_half.beta_eff ≈ beta_ref atol = 1e-10
+        @test energy_half.beta_eff ≈ beta_from_half_formula atol = 1e-10
+        @test energy_half.mu_eff ≈ 0.0 atol = 1e-10
 
         @test ASHoppingGKSL1P.local_current_from_Cmid(Cthermal, tmid) ≈ 2 * tmid * yim atol = 1e-12
     end
@@ -168,6 +182,11 @@ end
         obs_from_file = ASHoppingGKSL1P.local_observables_from_file(jld2_path, 1.0)
         @test obs_from_file.Cmid == Cio
         @test obs_from_file.central_indices == (1, 2)
+        @test haskey(obs_from_file, :beta_eff_energy)
+        @test haskey(obs_from_file, :temp_eff_energy)
+        @test haskey(obs_from_file, :mu_eff_energy)
+        @test haskey(obs_from_file, :energy_loc)
+        @test haskey(obs_from_file, :number_loc)
     end
 
     @testset "Gamma sweep local observables" begin
@@ -194,6 +213,9 @@ end
         @test sweep.temp_eff ≈ 1.0 ./ sweep.beta_eff atol = 1e-10
         @test sweep.mu_eff ≈ zeros(3) atol = 1e-10
         @test sweep.current ≈ [2 * tmid * 0.01 * g for g in sweep.Gamma] atol = 1e-12
+        @test sweep.beta_eff_energy ≈ [0.7, 0.9, 1.1] atol = 1e-10
+        @test sweep.temp_eff_energy ≈ 1.0 ./ sweep.beta_eff_energy atol = 1e-10
+        @test sweep.mu_eff_energy ≈ zeros(3) atol = 1e-10
     end
 
     @testset "isolated canonical correlator" begin
