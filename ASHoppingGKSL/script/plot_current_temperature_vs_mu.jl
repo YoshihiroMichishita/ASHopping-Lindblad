@@ -9,6 +9,8 @@ using LaTeXStrings
 using Plots
 using Plots.PlotMeasures: mm
 
+const T0 = 0.1
+
 function parse_args(args)
     opts = Dict{String, String}()
     i = 1
@@ -49,6 +51,7 @@ function collect_observables_over_mu(rootdir::AbstractString;
             current_abs=abs(obs.current),
             beta_eff=obs.beta_eff,
             temp_eff=obs.temp_eff,
+            delta_temp_eff=obs.temp_eff - T0,
             mu_eff=obs.mu_eff,
             beta_eff_energy=obs.beta_eff_energy,
             temp_eff_energy=obs.temp_eff_energy,
@@ -70,9 +73,10 @@ function build_current_temperature_plot(table::DataFrame)
         color=1,
         linewidth=1,
         marker=:circle,
-        xlabel=L"\mu",
+        xlabel=L"\mu(=\mu_R=-\mu_L)",
         ylabel=L"|J|",
         label=L"|J|",
+        title="(a)",
         legend=:topleft,
         grid=true,
         tickfontsize=14,
@@ -118,6 +122,32 @@ function build_current_temperature_plot(table::DataFrame)
     return figure
 end
 
+function build_current_delta_temperature_plot(table::DataFrame)
+    return plot(
+        table.current_abs,
+        table.delta_temp_eff;
+        size=(600, 400),
+        color=1,
+        linewidth=1,
+        marker=:circle,
+        yscale=:log10,
+        xlabel=L"|J|",
+        ylabel=L"\Delta T_{\mathrm{eff}}",
+        label="",
+        title="(b)",
+        legend=false,
+        grid=true,
+        tickfontsize=14,
+        guidefontsize=18,
+        legendfontsize=18,
+        titlefontsize=20,
+        left_margin=4mm,
+        right_margin=8mm,
+        bottom_margin=5mm,
+        top_margin=5mm,
+    )
+end
+
 function render_plot(table::DataFrame, output_path::AbstractString)
     savefig(build_current_temperature_plot(table), output_path)
     return output_path
@@ -136,13 +166,24 @@ function main(args)
     csv_path = joinpath(output_dir, "current_temperature_vs_mu.csv")
     png_path = joinpath(output_dir, "current_temperature_vs_mu.png")
     pdf_path = joinpath(output_dir, "current_temperature_vs_mu.pdf")
+    current_temperature_png_path = joinpath(output_dir, "J_vs_Teff_semilog.png")
+    current_temperature_pdf_path = joinpath(output_dir, "J_vs_Teff_semilog.pdf")
     CSV.write(csv_path, table)
     render_plot(table, png_path)
     render_plot(table, pdf_path)
+    current_temperature_figure = build_current_delta_temperature_plot(table)
+    savefig(current_temperature_figure, current_temperature_png_path)
+    savefig(current_temperature_figure, current_temperature_pdf_path)
 
     println("μ range = ", first(table.mu), " to ", last(table.mu))
     println("Saved data to: ", csv_path)
     println("Saved plots to: ", png_path, " and ", pdf_path)
+    println(
+        "Saved current-temperature plots to: ",
+        current_temperature_png_path,
+        " and ",
+        current_temperature_pdf_path,
+    )
 end
 
 if abspath(PROGRAM_FILE) == @__FILE__

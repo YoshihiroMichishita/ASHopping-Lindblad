@@ -5,7 +5,9 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 project_dir="$(cd "${script_dir}/.." && pwd)"
 
 outroot="${project_dir}/out/jump_heatmap_mu_sweep"
-mus=(0.0 0.3 0.6 0.9 1.2 1.5 1.8 2.1 2.4)
+#mus=(0.0 0.3 0.6 0.9 1.2 1.5 1.8 2.1 2.4)
+#mus=(0.0 0.6 1.2 1.8 2.4)
+mus=(0.1)
 plot_args=()
 
 while [[ $# -gt 0 ]]; do

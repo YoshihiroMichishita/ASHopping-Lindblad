@@ -48,12 +48,21 @@ end
     csv_path = joinpath(outdir, "current_temperature_vs_mu.csv")
     png_path = joinpath(outdir, "current_temperature_vs_mu.png")
     pdf_path = joinpath(outdir, "current_temperature_vs_mu.pdf")
+    current_temperature_png_path = joinpath(outdir, "J_vs_Teff_semilog.png")
+    current_temperature_pdf_path = joinpath(outdir, "J_vs_Teff_semilog.pdf")
     @test isfile(csv_path)
     @test isfile(png_path)
     @test isfile(pdf_path)
+    @test isfile(current_temperature_png_path)
+    @test isfile(current_temperature_pdf_path)
     @test filesize(png_path) > 0
     @test filesize(pdf_path) > 0
+    @test filesize(current_temperature_png_path) > 0
+    @test filesize(current_temperature_pdf_path) > 0
     @test png_dimensions(png_path) == (600, 400)
+    @test png_dimensions(current_temperature_png_path) == (600, 400)
+    @test !isfile(joinpath(outdir, "J_vs_Teff.png"))
+    @test !isfile(joinpath(outdir, "J_vs_Teff.pdf"))
 
     table = CSV.read(csv_path, DataFrame)
     @test table.mu == [0.0, 0.2, 0.4]
@@ -61,6 +70,7 @@ end
     @test table.current_abs ≈ [0.0, 0.02, 0.04] atol=1e-12
     @test table.beta_eff ≈ [2.0, 1.5, 1.0] atol=1e-10
     @test table.temp_eff ≈ [0.5, 2 / 3, 1.0] atol=1e-10
+    @test table.delta_temp_eff ≈ [0.4, 17 / 30, 0.9] atol=1e-10
     @test table.mu_eff ≈ zeros(3) atol=1e-10
     @test table.beta_eff_energy ≈ table.beta_eff atol=1e-10
     @test table.temp_eff_energy ≈ table.temp_eff atol=1e-10
@@ -86,6 +96,7 @@ end
         @test p.series_list[1][:linewidth] == 1
         @test p.series_list[2][:markershape] == :rect
         @test p.series_list[2][:linewidth] == 1
+        @test p.series_list[2][:y] ≈ [0.5, 2 / 3, 1.0] atol=1e-10
         if length(p.series_list) >= 3
             @test p.series_list[3][:markershape] == :rect
             @test p.series_list[3][:linewidth] == 1
@@ -100,6 +111,8 @@ end
         ]
         @test left_legend_labels == [raw"$|J|$", raw"$T_{\mathrm{eff}}$"]
         @test isempty(String(p.series_list[2][:label]))
+        @test String(left_axis[:xaxis][:guide]) == raw"$\Delta\mu$"
+        @test String(right_axis[:yaxis][:guide]) == raw"$T_{\mathrm{eff}}$"
         @test left_axis[:xaxis][:tickfontsize] == 14
         @test left_axis[:xaxis][:guidefontsize] == 16
         @test left_axis[:xaxis][:grid]
@@ -108,5 +121,37 @@ end
         @test right_axis[:yaxis][:tickfontsize] == 14
         @test right_axis[:yaxis][:guidefontsize] == 18
         @test right_axis[:right_margin] == 8mm
+    end
+
+    has_current_temperature_builder = isdefined(
+        @__MODULE__, :build_current_delta_temperature_plot,
+    )
+    @test has_current_temperature_builder
+    if has_current_temperature_builder
+        p = build_current_delta_temperature_plot(table)
+        @test p.attr[:size] == (600, 400)
+        @test length(p.series_list) == 1
+        @test p.series_list[1][:x] ≈ [0.0, 0.02, 0.04] atol=1e-12
+        @test p.series_list[1][:y] ≈ [0.4, 17 / 30, 0.9] atol=1e-10
+        @test p.series_list[1][:markershape] == :circle
+        @test p.series_list[1][:linewidth] == 1
+
+        axis = only(p.subplots)
+        @test axis[:legend_position] == :none
+        @test axis[:yaxis][:scale] == :log10
+        @test String(axis[:xaxis][:guide]) == raw"$|J|$"
+        @test String(axis[:yaxis][:guide]) == raw"$\Delta T_{\mathrm{eff}}$"
+        @test axis[:xaxis][:grid]
+
+        table_with_nonpositive_temperature = DataFrame(
+            mu=[0.0, 0.2, 0.4],
+            current_abs=[0.0, 0.02, 0.04],
+            delta_temp_eff=[0.4, 0.0, -0.2],
+        )
+        full_plot = build_current_delta_temperature_plot(
+            table_with_nonpositive_temperature,
+        )
+        @test full_plot.series_list[1][:x] ≈ [0.0, 0.02, 0.04] atol=1e-12
+        @test full_plot.series_list[1][:y] ≈ [0.4, 0.0, -0.2] atol=1e-12
     end
 end
