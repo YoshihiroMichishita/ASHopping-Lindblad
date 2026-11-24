@@ -33,6 +33,9 @@ export BilinearBasis,
        isolated_canonical_correlator,
        isolated_local_observables,
        global_effective_temperature,
+       reduced_gibbs_correlator,
+       gaussian_relative_entropy,
+       local_temperature_from_reduced_gibbs,
        reduced_annihilation_ops,
        reduced_creation_ops,
        reduced_bilinear_basis,
@@ -64,5 +67,6 @@ include("local_observables_io.jl")
 include("local_observables_sweep.jl")
 include("isolated_canonical.jl")
 include("global_observables.jl")
+include("reduced_gibbs_temperature.jl")
 
 end # module ASHoppingGKSL1P
